@@ -34,30 +34,50 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-int url_callback(http_parser* parser, const char *at, size_t length){
-    printf("URL: %s\n", at);
-    printf("URL: %.*s\n", length, at);
+int url_callback(http_parser* parser, const char *at, size_t length)
+{
+    printf("URL: %.*s\n", (int)length, at);
     return 0;
 }
 
-//int request_handler(int sock)
-//{
-//    char buf[1000];
-//    size_t c_recv = recv(sock, buf, 999, 0);
-//    buf[c_recv] = '\0';
-//    printf("server: request: %s\n", buf);
-//    
-//    //if (!fork()) {
-//
-//        size_t nparsed = http_parser_execute(parser, &settings, buf, c_recv);
-//        printf("Bytes parsed: %d\n", (int)nparsed);
-//    
-//    //}
-//    
-//    if (send(sock, "Hello, world!", 13, 0) == -1)
-//        perror("send");
-//    return 0;
-//}
+int http_begin_callback(http_parser* parser, const char *at, size_t length)
+{
+    printf("Header field: %.*s\n", (int)length, at);
+    return 0;
+}
+
+// continuosly read all recv() bytes, remember to free returned string
+char *recieve_data(int sock)
+{
+    size_t buf_size = 512;
+    
+    char buf[buf_size+1];
+    char *str = malloc(buf_size+1);
+    memset(str, 0, buf_size+1);
+    
+    size_t reads = 0;
+    ssize_t n_recvd;
+    while((n_recvd = recv(sock, buf, buf_size, 0)) >= -1) {
+        reads++;
+        if (n_recvd == 0) { // Connection closed by client
+            perror("reading");
+            break;
+        } else if (n_recvd == -1) { // Error receiving
+            perror("reading");
+            break;
+        } else {
+            buf[n_recvd] = '\0';
+            if (reads > 1) // Realloc if made more than 1 read
+                str = realloc(str, reads*buf_size + 1);
+            str = strcat(str, buf);
+        }
+        
+        if (n_recvd < buf_size) // final read
+            break;
+    }
+    
+    return str;
+}
 
 int main(void)
 {
@@ -121,8 +141,10 @@ int main(void)
         exit(1);
     }
     
+    // init http parser
     http_parser_settings settings;
     settings.on_url = url_callback;
+    settings.on_status = http_begin_callback;
     http_parser *parser = malloc(sizeof(http_parser));
     http_parser_init(parser, HTTP_REQUEST);
     
@@ -140,19 +162,16 @@ int main(void)
         printf("server: got connection from %s\n", s);
         if (!fork()) { // this is the child process
             close(sockfd); // child doesn't need the listener
-            //request_handler(new_fd);
             
-            char buf[1000];
-            size_t c_recv = recv(new_fd, buf, 999, 0);
-            buf[c_recv] = '\0';
-            printf("server: request: %s\n", buf);
+            // read request data from client
+            char *str = recieve_data(new_fd);
+            printf("server: request: %s\n", str);
             
-            //if (!fork()) {
-            
-            size_t nparsed = http_parser_execute(parser, &settings, buf, c_recv);
+            // parse http request
+            size_t nparsed = http_parser_execute(parser, &settings, str, strlen(str));
             printf("Bytes parsed: %d\n", (int)nparsed);
             
-            //}
+            //printf("METHOD: %d %d\n", parser->method, HTTP_METHOD_MAP(3));
             
             if (send(new_fd, "Hello, world!", 13, 0) == -1)
                 perror("send");
