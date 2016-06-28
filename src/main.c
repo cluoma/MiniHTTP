@@ -10,6 +10,8 @@
 #include <arpa/inet.h>
 #include <sys/wait.h>
 #include <signal.h>
+
+#include "request.h"
 #include "http_parser.h"
 
 
@@ -32,51 +34,6 @@ void *get_in_addr(struct sockaddr *sa)
         return &(((struct sockaddr_in*)sa)->sin_addr);
     }
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
-}
-
-int url_callback(http_parser* parser, const char *at, size_t length)
-{
-    printf("URL: %.*s\n", (int)length, at);
-    return 0;
-}
-
-int http_begin_callback(http_parser* parser, const char *at, size_t length)
-{
-    printf("Header field: %.*s\n", (int)length, at);
-    return 0;
-}
-
-// continuosly read all recv() bytes, remember to free returned string
-char *recieve_data(int sock)
-{
-    size_t buf_size = 512;
-    
-    char buf[buf_size+1];
-    char *str = malloc(buf_size+1);
-    memset(str, 0, buf_size+1);
-    
-    size_t reads = 0;
-    ssize_t n_recvd;
-    while((n_recvd = recv(sock, buf, buf_size, 0)) >= -1) {
-        reads++;
-        if (n_recvd == 0) { // Connection closed by client
-            perror("reading");
-            break;
-        } else if (n_recvd == -1) { // Error receiving
-            perror("reading");
-            break;
-        } else {
-            buf[n_recvd] = '\0';
-            if (reads > 1) // Realloc if made more than 1 read
-                str = realloc(str, reads*buf_size + 1);
-            str = strcat(str, buf);
-        }
-        
-        if (n_recvd < buf_size) // final read
-            break;
-    }
-    
-    return str;
 }
 
 int main(void)
@@ -143,8 +100,10 @@ int main(void)
     
     // init http parser
     http_parser_settings settings;
-    settings.on_url = url_callback;
-    settings.on_status = http_begin_callback;
+    settings.on_message_begin = start_cb;
+    settings.on_url = url_cb;
+    settings.on_header_field = header_field_cb;
+    settings.on_header_value = header_value_cb;
     http_parser *parser = malloc(sizeof(http_parser));
     http_parser_init(parser, HTTP_REQUEST);
     
@@ -163,13 +122,24 @@ int main(void)
         if (!fork()) { // this is the child process
             close(sockfd); // child doesn't need the listener
             
+            // Create request data
+            http_request request;
+            parser->data = &request;
+            
             // read request data from client
-            char *str = recieve_data(new_fd);
+            recieve_data(new_fd, &request);
+            char *str = request.request;
             printf("server: request: %s\n", str);
             
             // parse http request
             size_t nparsed = http_parser_execute(parser, &settings, str, strlen(str));
             printf("Bytes parsed: %d\n", (int)nparsed);
+            //printf("URL:: %.*s\n", request.uri_len, request.uri);
+            printf("FIELDS: %d VALUES: %d\n", (int)request.header_fields, (int)request.header_values);
+            for (int i = 0; i < request.header_values; i++) {
+                printf("HEADER FIELD: %.*s ", (int)request.header_field_len[i], request.header_field[i]);
+                printf("%.*s\n", (int)request.header_value_len[i], request.header_value[i]);
+            }
             
             //printf("METHOD: %d %d\n", parser->method, HTTP_METHOD_MAP(3));
             
