@@ -98,15 +98,6 @@ int main(void)
         exit(1);
     }
     
-    // init http parser
-    http_parser_settings settings;
-    settings.on_message_begin = start_cb;
-    settings.on_url = url_cb;
-    settings.on_header_field = header_field_cb;
-    settings.on_header_value = header_value_cb;
-    http_parser *parser = malloc(sizeof(http_parser));
-    http_parser_init(parser, HTTP_REQUEST);
-    
     printf("server: waiting for connections...\n");
     while(1) {  // main accept() loop
         sin_size = sizeof their_addr;
@@ -119,24 +110,28 @@ int main(void)
                   get_in_addr((struct sockaddr *)&their_addr),
                   s, sizeof s);
         printf("server: got connection from %s\n", s);
+        
         if (!fork()) { // this is the child process
             close(sockfd); // child doesn't need the listener
             
+            // init http parser
+            http_parser *parser = malloc(sizeof(http_parser));
+            http_parser_init(parser, HTTP_REQUEST);
+            
             // Create request data
             http_request request;
+            init_request(&request);
             parser->data = &request;
             
             // read request data from client
-            recieve_data(new_fd, &request);
-            char *str = request.request;
-            printf("server: request: %s\n", str);
+            receive_data(new_fd, parser);
             
-            // parse http request
-            size_t nparsed = http_parser_execute(parser, &settings, str, strlen(str));
-            printf("Bytes parsed: %d\n", (int)nparsed);
-            //printf("URL:: %.*s\n", request.uri_len, request.uri);
+            // Print helpful info
+            //printf("SIZEOF HEADER: %d\n", (int)sizeof(request.header_field[0]));
+            
             printf("FIELDS: %d VALUES: %d\n", (int)request.header_fields, (int)request.header_values);
             for (int i = 0; i < request.header_values; i++) {
+                printf("%d ", i);
                 printf("HEADER FIELD: %.*s ", (int)request.header_field_len[i], request.header_field[i]);
                 printf("%.*s\n", (int)request.header_value_len[i], request.header_value[i]);
             }
@@ -146,10 +141,15 @@ int main(void)
             if (send(new_fd, "Hello, world!", 13, 0) == -1)
                 perror("send");
             
+            // Cleanup
+            free_request(&request);
+            free(parser);
+            
             close(new_fd);
             exit(0);
         }
         close(new_fd);  // parent doesn't need this
+        //free(parser);
     }
     return 0;
 }

@@ -17,9 +17,11 @@
 typedef struct http_request http_request;
 
 struct http_request {
+    // Request buffer
     char *request;
     size_t request_len;
     
+    // First line
     int method;
     const char *uri;
     size_t uri_len;
@@ -27,7 +29,9 @@ struct http_request {
     size_t version_len;
     
     size_t content_length;
+    size_t header_length;
     
+    // Headers
     size_t header_fields;
     size_t header_values;
     const char **header_field;
@@ -35,6 +39,7 @@ struct http_request {
     const char **header_value;
     size_t *header_value_len;
     
+    // Body
     const char *body;
     size_t body_len;
 };
@@ -46,10 +51,16 @@ int start_cb(http_parser* parser);
 int url_cb(http_parser* parser, const char *at, size_t length);
 int header_field_cb(http_parser* parser, const char *at, size_t length);
 int header_value_cb(http_parser* parser, const char *at, size_t length);
+int header_end_cb(http_parser* parser);
+int body_cb(http_parser* parser, const char *at, size_t length);
 
 /* Free memory used by http_request */
-//int
+void init_request(http_request *request);
+void free_request(http_request *request);
 
-void recieve_data(int sock, http_request *request);
+//void recieve_data(int sock, http_request *request);
+void receive_data(int sock, http_parser *parser);
+ssize_t read_chunk(int sock, char **str, ssize_t t_recvd, size_t chunk_size);
+
 
 #endif /* defined(__MiniHTTP__request__) */

@@ -21,73 +21,102 @@
 
 #include "request.h"
 
-// Handle incoming request data
-void recieve_data(int sock, http_request *request)
+
+void receive_data(int sock, http_parser *parser)
 {
-    int is_eoh = 0;
-    size_t content_length = 0;
+    http_request *request = parser->data;
+    init_request(request);
+    
+    // Init http parser settings
+    http_parser_settings settings;
+    http_parser_settings_init(&settings);
+    settings.on_message_begin = start_cb;
+    settings.on_url = url_cb;
+    settings.on_header_field = header_field_cb;
+    settings.on_header_value = header_value_cb;
+    settings.on_headers_complete = header_end_cb;
+    settings.on_body = body_cb;
+    
     size_t header_length = 0;
     
     size_t buf_size = 512;
     
-    char *str = malloc(buf_size);
+    char *str = malloc(buf_size+1);
     if (str == NULL && errno == ENOMEM) {
         goto bad;
     }
     
     ssize_t t_recvd = 0;
     ssize_t n_recvd;
-    while((n_recvd = recv(sock, str+t_recvd, buf_size, 0)) >= -1) {
-        if (n_recvd == 0) { // Connection closed by client
-            perror("reading");
-            break;
-        } else if (n_recvd == -1) { // Error receiving
-            perror("reading");
-            break;
-        } else {
-            t_recvd += n_recvd;
-            str = realloc(str, t_recvd + buf_size);
-            if (str == NULL && errno == ENOMEM) {
-                goto bad;
-            }
+    while((n_recvd = recv(sock, str+t_recvd, buf_size, 0)) > 0) {
+        // Add data to buffer
+        t_recvd += n_recvd;
+        str[t_recvd] = '\0';
+        str = realloc(str, t_recvd + buf_size + 1);
+        if (str == NULL && errno == ENOMEM) {
+            goto bad;
         }
         
-        // Break out
-        if (!is_eoh) {
-            if (strnstr(str, "\r\n\r\n", t_recvd) != NULL) {
-                is_eoh = 1;
-                content_length = something(str, t_recvd);
-                break;
-            }
-        } else if (is_eoh && t_recvd <= header_length + content_length) {
-            
+        // Got end of headers, break out
+        char *tmp;
+        if ((tmp = strstr(str, "\r\n\r\n")) != NULL) {
+            header_length = tmp - str + 4;
+            request->header_length = header_length;
+            printf("HEADER LENGTH: %d\n", (int)header_length);
+            http_parser_execute(parser, &settings, str, header_length);
+            break;
         }
     }
+    // Do we need more data based on content-length?
+    while (t_recvd < request->content_length + header_length &&
+           (n_recvd = read_chunk(sock, &str, t_recvd, buf_size)) > 0) {
+            t_recvd += n_recvd;
+    }
+    
+    // Something went wrong
+    if (n_recvd == 0 || n_recvd == -1) { // Connection closed by client or recv error
+        goto bad;
+    }
+    
+    // Parse the rest of the input
+    http_parser_execute(parser, &settings, str+header_length, t_recvd-header_length);
+    
     request->request = str;
+    request->request_len = t_recvd;
+    printf("TOTAL RECEIVED: %d\n", (int)request->request_len);
     return;
+    
 bad:
+    if (str != NULL)
+        free(str);
+    free_request(request);
     perror("receive data");
     return;
 }
 
-int something(char *str, size_t length) {
-    char *content_length = strnstr(str, "Content-Length:", length);
-    if (content_length == NULL) {
-        return -1;
-    } else {
-        printf("CONTENT LENGTH: %d\n", atoi(content_length+strlen("Content-Length:")));
-        return atoi(str+strlen("Content-Length: "));
+// Reads maximum of 'chunk_size' bytes from socket into str
+// Returns actual number of bytes read
+ssize_t read_chunk(int sock, char **str, ssize_t t_recvd, size_t chunk_size)
+{
+    char *tmp = (*str);
+    ssize_t n_recvd = recv(sock, tmp+t_recvd, chunk_size, 0);
+    
+    if (n_recvd == 0 || n_recvd == -1) { // recv error
+        return n_recvd;
     }
+    
+    tmp = realloc(tmp, t_recvd + n_recvd + chunk_size + 1);
+    if (tmp == NULL && errno == ENOMEM) { // realloc error
+        return -1;
+    }
+    
+    tmp[t_recvd+n_recvd] = '\0';
+    (*str) = tmp;
+    return n_recvd;
 }
 
-
-/*
- * Parsing callbacks
- */
-int start_cb(http_parser* parser)
+void init_request(http_request *request)
 {
-    http_request *request = parser->data;
-    
     request->content_length = 0;
     
     request->header_fields = 0;
@@ -96,7 +125,29 @@ int start_cb(http_parser* parser)
     request->header_field_len = NULL;
     request->header_value = NULL;
     request->header_value_len = NULL;
-    
+}
+
+void free_request(http_request *request)
+{
+    if (request->request != NULL)
+        free(request->request);
+    if (request->header_field != NULL)
+        free(request->header_field);
+    if (request->header_field_len != NULL)
+        free(request->header_field_len);
+    if (request->header_value != NULL)
+        free(request->header_value);
+    if (request->header_value_len != NULL)
+        free(request->header_value_len);
+}
+
+
+/*
+ * Parsing callbacks
+ */
+int start_cb(http_parser* parser)
+{
+    printf("STARTED PARSING\n");
     return 0;
 }
 
@@ -135,5 +186,27 @@ int header_value_cb(http_parser* parser, const char *at, size_t length)
     
     request->header_values += 1;
     
+    return 0;
+}
+
+int header_end_cb(http_parser* parser)
+{
+    http_request *request = parser->data;
+    
+    // Get content length
+    request->content_length = parser->content_length;
+    
+    //printf("HEADER END\n");
+    return 0;
+}
+
+int body_cb(http_parser* parser, const char *at, size_t length)
+{
+    http_request *request = parser->data;
+    
+    request->body = at;
+    request->body_len = length;
+    
+    //printf("PARSED BODY\n");
     return 0;
 }
