@@ -11,13 +11,46 @@
 #include <sys/wait.h>
 #include <signal.h>
 
+#include "server.h"
 #include "request.h"
+#include "respond.h"
 #include "http_parser.h"
 
 
-#define MYPORT "3490"  // the port users will be connecting to
-#define BACKLOG 10     // how many pending connections queue will hold
-#define DOCROOT "/Users/colin/Documents/MiniHTTP/MiniHTTP/docroot"
+
+void parse_args(int argc, char **argv, http_server server)
+{
+    int c;
+    while ((c = getopt(argc, argv, "p:d:b:")) != -1) {
+        switch (c) {
+            case 'p':
+                server.port = optarg;
+                break;
+            case 'd':
+                server.docroot = optarg;
+                break;
+            case 'b':
+                server.backlog = atoi(optarg);
+                break;
+            case '?':
+                if (optopt == 'c' || optopt == 'd' || optopt == 'b')
+                {
+                    fprintf(stderr, "Error: -%c option missing\n", optopt);
+                    exit(1);
+                }
+                else
+                {
+                    fprintf(stderr, "Error: -%c unknown option\n", optopt);
+                    exit(1);
+                }
+                break;
+            default:
+                fprintf(stderr, "Error parsing options\nExiting...");
+                exit(1);
+        }
+    }
+    
+}
 
 void sigchld_handler(int s)
 {
@@ -36,8 +69,11 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
+    http_server server = HTTP_SERVER_DEFAULT;
+    parse_args(argc, argv, server);
+    
     int sockfd = 0; // listen on sockfd, new connection on new_fd
     int new_fd;
     struct addrinfo hints, *servinfo, *p;
@@ -55,7 +91,7 @@ int main(void)
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE; // use my IP
     
-    if ((rv = getaddrinfo(NULL, MYPORT, &hints, &servinfo)) != 0) {
+    if ((rv = getaddrinfo(NULL, server.port, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
     }
@@ -84,7 +120,7 @@ int main(void)
         fprintf(stderr, "server: failed to bind\n");
         exit(1);
     }
-    if (listen(sockfd, BACKLOG) == -1) {
+    if (listen(sockfd, server.backlog) == -1) {
         perror("listen");
         exit(1);
     }
@@ -130,16 +166,15 @@ int main(void)
             //printf("SIZEOF HEADER: %d\n", (int)sizeof(request.header_field[0]));
             
             printf("FIELDS: %d VALUES: %d\n", (int)request.header_fields, (int)request.header_values);
-            for (int i = 0; i < request.header_values; i++) {
-                printf("%d ", i);
-                printf("HEADER FIELD: %.*s ", (int)request.header_field_len[i], request.header_field[i]);
-                printf("%.*s\n", (int)request.header_value_len[i], request.header_value[i]);
-            }
+//            for (int i = 0; i < request.header_values; i++) {
+//                printf("%d ", i);
+//                printf("HEADER FIELD: %.*s ", (int)request.header_field_len[i], request.header_field[i]);
+//                printf("%.*s\n", (int)request.header_value_len[i], request.header_value[i]);
+//            }
             
-            //printf("METHOD: %d %d\n", parser->method, HTTP_METHOD_MAP(3));
+            printf("METHOD: %d %s\n", parser->method, http_method_str(parser->method));
             
-            if (send(new_fd, "Hello, world!", 13, 0) == -1)
-                perror("send");
+            handle_request(new_fd, &request);
             
             // Cleanup
             free_request(&request);
@@ -149,7 +184,6 @@ int main(void)
             exit(0);
         }
         close(new_fd);  // parent doesn't need this
-        //free(parser);
     }
     return 0;
 }

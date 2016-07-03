@@ -25,6 +25,8 @@ struct http_request {
     int method;
     const char *uri;
     size_t uri_len;
+    struct http_parser_url parser_url;
+    
     const char *version;
     size_t version_len;
     

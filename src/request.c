@@ -39,7 +39,7 @@ void receive_data(int sock, http_parser *parser)
     
     size_t header_length = 0;
     
-    size_t buf_size = 512;
+    size_t buf_size = 10;
     
     char *str = malloc(buf_size+1);
     if (str == NULL && errno == ENOMEM) {
@@ -72,6 +72,8 @@ void receive_data(int sock, http_parser *parser)
            (n_recvd = read_chunk(sock, &str, t_recvd, buf_size)) > 0) {
             t_recvd += n_recvd;
     }
+    
+    printf("REQUEST:\n %.*s", (int)t_recvd, str);
     
     // Something went wrong
     if (n_recvd == 0 || n_recvd == -1) { // Connection closed by client or recv error
@@ -158,6 +160,12 @@ int url_cb(http_parser* parser, const char *at, size_t length)
     request->uri = at;
     request->uri_len = length;
     
+    http_parser_parse_url(at, length, 1, &(request->parser_url));
+    
+    struct http_parser_url parsed_url = request->parser_url;
+    if ((parsed_url.field_set >> UF_PATH) & 1)
+        printf("URL: %.*s\n", parsed_url.field_data[UF_PATH].len, at+parsed_url.field_data[UF_PATH].off);
+    
     return 0;
 }
 
@@ -195,6 +203,8 @@ int header_end_cb(http_parser* parser)
     
     // Get content length
     request->content_length = parser->content_length;
+    // Get http method
+    request->method = parser->method;
     
     //printf("HEADER END\n");
     return 0;
