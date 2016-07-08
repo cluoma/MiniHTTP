@@ -17,7 +17,7 @@
 void parse_args(int argc, char **argv, http_server *server)
 {
     int c;
-    while ((c = getopt(argc, argv, "p:d:b:")) != -1) {
+    while ((c = getopt(argc, argv, "p:d:b:a:l:")) != -1) {
         switch (c) {
             case 'p':
                 server->port = optarg;

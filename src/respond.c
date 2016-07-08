@@ -27,7 +27,7 @@ handle_request(int sock, http_server *server, http_request *request)
     rh.status.version = "HTTP/1.1";
     
     switch (request->method) {
-        case HTTP_GET | HTTP_POST:
+        case HTTP_GET:
         {
             char *url = url_path(request);
             char *file_path = malloc(strlen(server->docroot) + strlen(url) + 1);
@@ -55,6 +55,36 @@ handle_request(int sock, http_server *server, http_request *request)
             }
             free(file_path);
         }
+            break;
+        case HTTP_POST:
+        {
+            char *url = url_path(request);
+            char *file_path = malloc(strlen(server->docroot) + strlen(url) + 1);
+            memset(file_path, 0, strlen(server->docroot) + strlen(url) + 1);
+            file_path = strcat(file_path, server->docroot);
+            file_path = strcat(file_path, url);
+            free(url);
+            printf("SANITIZED URL: %s\n", file_path);
+            
+            file_stats fs = get_file_stats(file_path);
+            build_header(&rh, &fs);
+            
+            if (fs.found)
+            {
+                if (strcasecmp(fs.extension, "cgi") == 0)
+                {
+                    exec_cgi(sock, request, file_path);
+                } else {
+                    send_header(sock, &rh, &fs);
+                    send_file(sock, file_path, &fs);
+                }
+            } else
+            {
+                send(sock, "HTTP/1.1 404 Not Found\n", 23, 0);
+            }
+            free(file_path);
+        }
+            break;
     }
 }
 
