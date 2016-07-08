@@ -18,6 +18,7 @@
 #include <arpa/inet.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <limits.h>
 
 #include "request.h"
 
@@ -37,55 +38,64 @@ void receive_data(int sock, http_parser *parser)
     settings.on_headers_complete = header_end_cb;
     settings.on_body = body_cb;
     
-    size_t header_length = 0;
-    
-    size_t buf_size = 10;
-    
-    char *str = malloc(buf_size+1);
+    char *str = malloc(REQUEST_BUF_SIZE+1);
     if (str == NULL && errno == ENOMEM) {
         goto bad;
     }
     
     ssize_t t_recvd = 0;
-    ssize_t n_recvd;
-    while((n_recvd = recv(sock, str+t_recvd, buf_size, 0)) > 0) {
-        // Add data to buffer
+    ssize_t n_recvd = 0;
+    int sel;
+    
+    // Structures for select
+    fd_set set;
+    struct timeval timeout;
+    FD_ZERO (&set);
+    FD_SET (sock, &set);
+    timeout.tv_sec = 2;
+    timeout.tv_usec = 0;
+    
+    // Read up to end of header received
+    while((sel = select(sock+1, &set, NULL, NULL, &timeout)) &&
+          (n_recvd = read_chunk(sock, &str, t_recvd, REQUEST_BUF_SIZE)) > 0)
+    {
         t_recvd += n_recvd;
-        str[t_recvd] = '\0';
-        str = realloc(str, t_recvd + buf_size + 1);
-        if (str == NULL && errno == ENOMEM) {
-            goto bad;
-        }
         
         // Got end of headers, break out
         char *tmp;
         if ((tmp = strstr(str, "\r\n\r\n")) != NULL) {
-            header_length = tmp - str + 4;
-            request->header_length = header_length;
-            printf("HEADER LENGTH: %d\n", (int)header_length);
-            http_parser_execute(parser, &settings, str, header_length);
+            request->header_length = tmp - str + 4;
+            http_parser_execute(parser, &settings, str, request->header_length);
             break;
         }
     }
     // Do we need more data based on content-length?
-    while (t_recvd < request->content_length + header_length &&
-           (n_recvd = read_chunk(sock, &str, t_recvd, buf_size)) > 0) {
-            t_recvd += n_recvd;
+    while (t_recvd < request->content_length + request->header_length &&
+           (sel = select(sock+1, &set, NULL, NULL, &timeout)) &&
+           (n_recvd = read_chunk(sock, &str, t_recvd, REQUEST_BUF_SIZE)) > 0)
+    {
+        printf("WHILE LESS THAN %d\n", (int)(request->content_length));
+        t_recvd += n_recvd;
     }
     
-    printf("REQUEST:\n %.*s", (int)t_recvd, str);
+    printf("REQUEST:\n%.*s", (int)t_recvd, str);
     
     // Something went wrong
-    if (n_recvd == 0 || n_recvd == -1) { // Connection closed by client or recv error
+    // Connection closed by client, recv error
+    // Select timeout
+    if (n_recvd <= 0 || sel <= 0) {
         goto bad;
     }
     
     // Parse the rest of the input
-    http_parser_execute(parser, &settings, str+header_length, t_recvd-header_length);
+    http_parser_execute(parser, &settings,
+                        str+(request->header_length),
+                        t_recvd-(request->header_length));
     
     request->request = str;
     request->request_len = t_recvd;
     printf("TOTAL RECEIVED: %d\n", (int)request->request_len);
+    printf("BODY LENGTH: %d\n", (int)request->content_length);
     return;
     
 bad:
@@ -104,11 +114,13 @@ ssize_t read_chunk(int sock, char **str, ssize_t t_recvd, size_t chunk_size)
     ssize_t n_recvd = recv(sock, tmp+t_recvd, chunk_size, 0);
     
     if (n_recvd == 0 || n_recvd == -1) { // recv error
+        fprintf(stderr, "RECV\n");
         return n_recvd;
     }
     
     tmp = realloc(tmp, t_recvd + n_recvd + chunk_size + 1);
     if (tmp == NULL && errno == ENOMEM) { // realloc error
+        fprintf(stderr, "REALLOC\n");
         return -1;
     }
     
@@ -202,11 +214,14 @@ int header_end_cb(http_parser* parser)
     http_request *request = parser->data;
     
     // Get content length
-    request->content_length = parser->content_length;
+    if (parser->content_length < ULLONG_MAX)
+    {
+        request->content_length = (size_t)parser->content_length;
+    }
+    
     // Get http method
     request->method = parser->method;
     
-    //printf("HEADER END\n");
     return 0;
 }
 
@@ -217,6 +232,5 @@ int body_cb(http_parser* parser, const char *at, size_t length)
     request->body = at;
     request->body_len = length;
     
-    //printf("PARSED BODY\n");
     return 0;
 }

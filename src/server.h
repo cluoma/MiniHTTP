@@ -12,14 +12,26 @@
 typedef struct http_server http_server;
 struct http_server
 {
+    // Config stuff
     char *port;
     int backlog;
     char *docroot;
+    int log;
+    int daemon;
+    
+    // Sock stuff
+    int sock;
 };
-const http_server HTTP_SERVER_DEFAULT = {
-    "3490", 10, "./docroot"
+static const http_server HTTP_SERVER_DEFAULT = {
+    "3490", 10, "./docroot", 0
 };
 
-void parse_args(int argc, char **argv, http_server server);
+void *get_in_addr(struct sockaddr *sa);
+
+void server_init(http_server *server);
+
+void server_main_loop(http_server *server);
+
+void parse_args(int argc, char **argv, http_server *server);
 
 #endif

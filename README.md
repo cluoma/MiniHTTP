@@ -1,6 +1,15 @@
 #MiniHTTP
 
-A lightweight HTTP webserver purpose-built for small systems such as the Raspberry Pi.
+A simple webserver that implements only basic HTTP. Processes are forked to handle requests GET or POST request. Also has not-fully-implemented CGI support.
+
+### Arguments
+
+__-p [PORT]__ port number
+__-d [DOCROOT]__ directory where files will be served from
+__-b [BACKLOG]__ backlog for accept()
+__-a__ run as a daemon
+__-l__ enable logs
+
 
 Thanks to:    
 [Beej's Guide to Network Programming](http://beej.us/guide/bgnet/output/print/bgnet_USLetter_2.pdf)    

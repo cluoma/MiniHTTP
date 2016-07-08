@@ -16,9 +16,40 @@
 __typeof__ (b) _b = (b); \
 _a > _b ? _a : _b; })
 
-void handle_request(int sock, http_request *request);
+typedef struct status_line status_line;
+struct status_line {
+    char *version;
+    char *status_code;
+    char *status;
+};
 
-void send_file(int sock, FILE *f);
+typedef struct header_line header_line;
+struct header_line {
+    char *field;
+    char *value;
+};
+
+typedef struct response_header response_header;
+struct response_header {
+    status_line status;
+    header_line *headers;
+};
+
+typedef struct file_stats file_stats;
+struct file_stats {
+    int found;
+    long long bytes;
+    char *name;
+    char *extension;
+};
+
+void handle_request(int sock, http_server *server, http_request *request);
+
+void send_header(int sock, response_header *rh, file_stats *fs);
+void send_file(int sock, char *file_path, file_stats *fs);
+
+file_stats get_file_stats(char *file_path);
+void build_header(response_header *header, file_stats *fs);
 
 /* Get properly formatted url path from request */
 char *url_path(http_request *request);

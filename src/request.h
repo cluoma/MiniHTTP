@@ -14,8 +14,12 @@
 #include <string.h>
 #include "http_parser.h"
 
-typedef struct http_request http_request;
+#define REQUEST_BUF_SIZE 500
 
+/*
+ * Struct is populated when parsing
+ */
+typedef struct http_request http_request;
 struct http_request {
     // Request buffer
     char *request;
@@ -27,6 +31,7 @@ struct http_request {
     size_t uri_len;
     struct http_parser_url parser_url;
     
+    // HTTP version
     const char *version;
     size_t version_len;
     
@@ -46,7 +51,8 @@ struct http_request {
     size_t body_len;
 };
 
-/* Request parsing callback functions
+/*
+ * Request parsing callback functions
  * all callbacks return 0 on succes, -1 otherwise
  */
 int start_cb(http_parser* parser);
@@ -60,7 +66,7 @@ int body_cb(http_parser* parser, const char *at, size_t length);
 void init_request(http_request *request);
 void free_request(http_request *request);
 
-//void recieve_data(int sock, http_request *request);
+/* Main functions to read request */
 void receive_data(int sock, http_parser *parser);
 ssize_t read_chunk(int sock, char **str, ssize_t t_recvd, size_t chunk_size);
 
