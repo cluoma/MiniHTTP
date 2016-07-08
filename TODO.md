@@ -1,8 +1,8 @@
 TODO
 
 server:
--logging + arg
--daemon + arg
+- logging + arg
+- daemon + arg
 
 Request:
 - Parse after every buf read
