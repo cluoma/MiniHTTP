@@ -4,11 +4,12 @@ A simple webserver that implements only basic HTTP. Processes are forked to hand
 
 ### Arguments
 
-__-p [PORT]__ port number
-__-d [DOCROOT]__ directory where files will be served from
-__-b [BACKLOG]__ backlog for accept()
-__-a__ run as a daemon
-__-l__ enable logs
+__-p [PORT]__ port number    
+__-d [DOCROOT]__ directory where files will be served from    
+__-b [BACKLOG]__ backlog for accept()    
+__-l [LOGFILE]__ a path to a FILE that minihttp can write logs to
+ - logs are of the form "<method>,<requested file>,<GMT time>"
+__-a__ run as a daemon     
 
 
 Thanks to:    

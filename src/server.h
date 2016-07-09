@@ -16,14 +16,14 @@ struct http_server
     char *port;
     int backlog;
     char *docroot;
-    int log;
+    char *log_file;
     int daemon;
     
     // Sock stuff
     int sock;
 };
 static const http_server HTTP_SERVER_DEFAULT = {
-    "3490", 10, "./docroot", 0, 0, 0
+    "3490", 10, "./docroot", "./", 0, 0
 };
 
 void *get_in_addr(struct sockaddr *sa);

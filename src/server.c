@@ -15,6 +15,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <time.h>
 
 #include "server.h"
 #include "request.h"
@@ -29,6 +30,32 @@ get_in_addr(struct sockaddr *sa)
         return &(((struct sockaddr_in*)sa)->sin_addr);
     }
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
+//
+void
+write_log(http_server *server, http_request *request)
+{
+    // Get current time
+    time_t timer;
+    char buffer[26];
+    struct tm* tm_info;
+    time(&timer);
+    tm_info = gmtime(&timer);
+    strftime(buffer, 26, "%Y:%m:%d %H:%M:%S", tm_info);
+    
+    FILE *f = fopen(server->log_file, "a"); // open for writing
+    
+    if (f == NULL) return;
+    
+    fwrite(http_method_str(request->method), 1, strlen(http_method_str(request->method)), f);
+    fwrite(",", 1, 1, f);
+    fwrite(request->uri, 1, request->uri_len, f);
+    fwrite(",", 1, 1, f);
+    fwrite(buffer, 1, strlen(buffer), f);
+    fwrite("\n", 1, 1, f);
+    
+    fclose(f);
 }
 
 void
@@ -104,6 +131,8 @@ server_main_loop(http_server *server)
                   s, sizeof s);
         printf("server: got connection from %s\n", s);
         
+        
+        
         if (!fork()) { // this is the child process
             close(server->sock); // child doesn't need the listener
             
@@ -119,6 +148,7 @@ server_main_loop(http_server *server)
             // read request data from client
             receive_data(conn_fd, parser);
             
+            write_log(server, &request);
             
             printf("FIELDS: %d VALUES: %d\n", (int)request.header_fields, (int)request.header_values);
                         for (int i = 0; i < request.header_values; i++) {
