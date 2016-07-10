@@ -42,7 +42,7 @@ exec_cgi(int sock, http_request *request, char *file_path)
     int pipefd[2];
     pipe(pipefd);
     
-    printf("FILE: %s\n", file_path);
+    //printf("FILE: %s\n", file_path);
     write(pipefd[1], request->body, request->content_length);
     
     int c_pid = fork();
