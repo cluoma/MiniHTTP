@@ -31,7 +31,6 @@ http_mime http_mime_types[] = {
 char *
 mime_from_ext(char *ext)
 {
-    printf("EXT: %s\n", ext);
     for (size_t i = 0; i < ARRAY_SIZE(http_mime_types); i++)
     {
         if (strcasecmp(ext, http_mime_types[i].ext) == 0)

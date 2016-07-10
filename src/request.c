@@ -74,11 +74,8 @@ void receive_data(int sock, http_parser *parser)
            (sel = select(sock+1, &set, NULL, NULL, &timeout)) &&
            (n_recvd = read_chunk(sock, &str, t_recvd, REQUEST_BUF_SIZE)) > 0)
     {
-        printf("WHILE LESS THAN %d\n", (int)(request->content_length));
         t_recvd += n_recvd;
     }
-    
-    printf("REQUEST:\n%.*s", (int)t_recvd, str);
     
     // Something went wrong
     // Connection closed by client, recv error
@@ -94,8 +91,8 @@ void receive_data(int sock, http_parser *parser)
     
     request->request = str;
     request->request_len = t_recvd;
-    printf("TOTAL RECEIVED: %d\n", (int)request->request_len);
-    printf("BODY LENGTH: %d\n", (int)request->content_length);
+//    printf("TOTAL RECEIVED: %d\n", (int)request->request_len);
+//    printf("BODY LENGTH: %d\n", (int)request->content_length);
     return;
     
 bad:
@@ -161,7 +158,6 @@ void free_request(http_request *request)
  */
 int start_cb(http_parser* parser)
 {
-    printf("STARTED PARSING\n");
     return 0;
 }
 
@@ -174,9 +170,9 @@ int url_cb(http_parser* parser, const char *at, size_t length)
     
     http_parser_parse_url(at, length, 1, &(request->parser_url));
     
-    struct http_parser_url parsed_url = request->parser_url;
-    if ((parsed_url.field_set >> UF_PATH) & 1)
-        printf("URL: %.*s\n", parsed_url.field_data[UF_PATH].len, at+parsed_url.field_data[UF_PATH].off);
+//    struct http_parser_url parsed_url = request->parser_url;
+//    if ((parsed_url.field_set >> UF_PATH) & 1)
+//        printf("URL: %.*s\n", parsed_url.field_data[UF_PATH].len, at+parsed_url.field_data[UF_PATH].off);
     
     return 0;
 }

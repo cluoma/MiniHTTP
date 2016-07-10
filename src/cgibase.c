@@ -18,13 +18,10 @@
 void
 exec_cgi(int sock, http_request *request, char *file_path)
 {
-    printf("DOING CGI!!!\n");
-    //printf("BODYYY: %.*s\n", request->body_len, request->body);
-    
     // Setup environ variables
     char *envp[5];
     asprintf(&envp[0], "REQUEST_METHOD=%s", http_method_str(request->method));
-    asprintf(&envp[1], "CONTENT_LENGTH=%ld", request->content_length);
+    asprintf(&envp[1], "CONTENT_LENGTH=%ld", (long int)request->content_length);
     envp[3] = NULL;
     
     char *tmp;
@@ -75,5 +72,7 @@ exec_cgi(int sock, http_request *request, char *file_path)
         
         // Wait for child to finish
         waitpid(c_pid, NULL, 0);
+        
+        close(pipefd[1]);
     }
 }

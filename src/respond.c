@@ -35,7 +35,6 @@ handle_request(int sock, http_server *server, http_request *request)
             file_path = strcat(file_path, server->docroot);
             file_path = strcat(file_path, url);
             free(url);
-            printf("SANITIZED URL: %s\n", file_path);
             
             file_stats fs = get_file_stats(file_path);
             build_header(&rh, &fs);
@@ -64,7 +63,6 @@ handle_request(int sock, http_server *server, http_request *request)
             file_path = strcat(file_path, server->docroot);
             file_path = strcat(file_path, url);
             free(url);
-            printf("SANITIZED URL: %s\n", file_path);
             
             file_stats fs = get_file_stats(file_path);
             build_header(&rh, &fs);
@@ -103,7 +101,7 @@ send_header(int sock, response_header *rh, file_stats *fs)
     char *buf;
     asprintf(&buf, "Content-Type: %s\r\n", mime_from_ext(fs->extension));
     send(sock, buf, strlen(buf), 0);
-    asprintf(&buf, "Content-Length: %lld\r\n", fs->bytes);
+    asprintf(&buf, "Content-Length: %lld\r\n", (long long int)fs->bytes);
     send(sock, buf, strlen(buf), 0);
     free(buf);
     
@@ -172,7 +170,6 @@ url_path(http_request *request)
         html_to_text(request->uri+(request->parser_url.field_data[UF_PATH].off),
                      path,
                      request->parser_url.field_data[UF_PATH].len);
-        printf("PARSED URL: %s\n", path);
         path = sanitize_path(path);
         return path;
     } else { // Something went wrong, return base url path "/"

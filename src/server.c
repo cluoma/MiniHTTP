@@ -36,6 +36,9 @@ get_in_addr(struct sockaddr *sa)
 void
 write_log(http_server *server, http_request *request)
 {
+    FILE *f = fopen(server->log_file, "a"); // open for writing
+    if (f == NULL) return;
+    
     // Get current time
     time_t timer;
     char buffer[26];
@@ -44,14 +47,21 @@ write_log(http_server *server, http_request *request)
     tm_info = gmtime(&timer);
     strftime(buffer, 26, "%Y:%m:%d %H:%M:%S", tm_info);
     
-    FILE *f = fopen(server->log_file, "a"); // open for writing
-    
-    if (f == NULL) return;
-    
+    // Log method
     fwrite(http_method_str(request->method), 1, strlen(http_method_str(request->method)), f);
     fwrite(",", 1, 1, f);
-    fwrite(request->uri, 1, request->uri_len, f);
-    fwrite(",", 1, 1, f);
+    
+    // Log URI
+    if (strcmp(http_method_str(request->method), "<unknown>") == 0)
+    {
+        fwrite(",", 1, 1, f);
+    } else
+    {
+        fwrite(request->uri, 1, request->uri_len, f);
+        fwrite(",", 1, 1, f);
+    }
+    
+    // Log GMT timestamp
     fwrite(buffer, 1, strlen(buffer), f);
     fwrite("\n", 1, 1, f);
     
@@ -150,19 +160,18 @@ server_main_loop(http_server *server)
             
             write_log(server, &request);
             
-            printf("FIELDS: %d VALUES: %d\n", (int)request.header_fields, (int)request.header_values);
-                        for (int i = 0; i < request.header_values; i++) {
-                            printf("%d ", i);
-                            printf("HEADER FIELD: %.*s ", (int)request.header_field_len[i], request.header_field[i]);
-                            printf("%.*s\n", (int)request.header_value_len[i], request.header_value[i]);
-                            printf("BODYY: %d\n", (int)request.body_len);
-                        }
-            printf("METHOD: %d %s\n", parser->method, http_method_str(parser->method));
+//            printf("FIELDS: %d VALUES: %d\n", (int)request.header_fields, (int)request.header_values);
+//                        for (int i = 0; i < request.header_values; i++) {
+//                            printf("%d ", i);
+//                            printf("HEADER FIELD: %.*s ", (int)request.header_field_len[i], request.header_field[i]);
+//                            printf("%.*s\n", (int)request.header_value_len[i], request.header_value[i]);
+//                            printf("BODYY: %d\n", (int)request.body_len);
+//                        }
+//            printf("METHOD: %d %s\n", parser->method, http_method_str(parser->method));
             
             handle_request(conn_fd, server, &request);
             
             // Cleanup
-        end:
             free_request(&request);
             free(parser);
             close(conn_fd);
