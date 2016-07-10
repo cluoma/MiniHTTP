@@ -4,7 +4,7 @@ A simple webserver that implements a subset of HTTP/1.1. No external libraries a
 
 Processes are forked to handle GET or POST requests. Basic CGI support is implemented for GET and POST although only CONTENT_LENGTH and QUERY_STRING environment variables are set as well as sending POST data to stdin. Any *.cgi file is assumed to be executable and MiniHTTP will attempt to fork a process and execute it. In this way php and python CGI scripts are supported as long as their necessary libraries are installed and the script is named accordingly.
 
-This software is free as in free as in do whatever you want with it. The exception of course is http_parse.c and http_parse.h as they are not my works. Find a link to that project below.
+This software is free as in free as in do whatever you want with it. The exception of course is http_parser.c and http_parser.h as they are not my works. Find a link to that project below.
 
 ### Arguments
 
