@@ -6,12 +6,17 @@
 //  Copyright (c) 2016 Colin Luoma. All rights reserved.
 //
 
+#include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
+#ifdef __linux__
+#include <sys/sendfile.h>
+#endif
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "server.h"
 #include "request.h"
@@ -30,6 +35,13 @@ handle_request(int sock, http_server *server, http_request *request)
         case HTTP_GET:
         {
             char *url = url_path(request);
+            if (strcmp(url, "") == 0)
+            {
+                url = realloc(url, strlen("/cgi-bin/cblog.cgi")+1);
+                memset(url, 0, strlen("/cgi-bin/cblog.cgi")+1);
+                strcpy(url, "/cgi-bin/cblog.cgi");
+            }
+            
             char *file_path = malloc(strlen(server->docroot) + strlen(url) + 1);
             memset(file_path, 0, strlen(server->docroot) + strlen(url) + 1);
             file_path = strcat(file_path, server->docroot);
@@ -58,11 +70,14 @@ handle_request(int sock, http_server *server, http_request *request)
         case HTTP_POST:
         {
             char *url = url_path(request);
+            
             char *file_path = malloc(strlen(server->docroot) + strlen(url) + 1);
             memset(file_path, 0, strlen(server->docroot) + strlen(url) + 1);
             file_path = strcat(file_path, server->docroot);
             file_path = strcat(file_path, url);
             free(url);
+            
+            printf("%s\n", file_path);
             
             file_stats fs = get_file_stats(file_path);
             build_header(&rh, &fs);
@@ -113,17 +128,28 @@ send_header(int sock, response_header *rh, file_stats *fs)
 void
 send_file(int sock, char *file_path, file_stats *fs)
 {
-    char *buf[256];
     
-    FILE *f = fopen(file_path, "r");
-    
-    size_t n_read;
-    while (!feof(f)) {
-        n_read = fread(buf, 1, 256, f);
-        send(sock, buf, n_read, 0);
+    int f = open(file_path, O_RDONLY);
+    if ( f <= 0 )
+    {
+        printf("Cannot open file %d\n", errno);
     }
     
-    fclose(f);
+    off_t len = 0;
+#ifdef __APPLE__
+    if ( sendfile(f, sock, 0, &len, NULL, 0) < 0 )
+    {
+        printf("Mac: Sendfile error: %d\n", errno);
+    }
+#elif __linux__
+    ssize_t sent = 0;
+    while (sent < fs->bytes)
+    {
+        sent += sendfile(sock, f, &len, fs->bytes - sent);
+    }
+#endif
+    close(f);
+    
 }
 
 // Needs a lot of work
