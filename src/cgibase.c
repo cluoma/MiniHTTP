@@ -50,6 +50,7 @@ exec_cgi(int sock, http_request *request, char *file_path)
     { // Child
         close(pipefd[1]);
         send(sock, "HTTP/1.1 200 OK\r\n", 17, 0);
+        //send(sock, "Content-Length: 17926\r\n", 23, 0);
         dup2(sock, STDOUT_FILENO);
         dup2(pipefd[0], STDIN_FILENO);
         close(pipefd[0]);

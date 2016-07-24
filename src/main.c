@@ -1,15 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <sys/wait.h>
-#include <signal.h>
 
 #include "server.h"
 
@@ -54,39 +45,19 @@ void parse_args(int argc, char **argv, http_server *server)
     
 }
 
-// Reap zombie processes
-void sigchld_handler(int s)
-{
-    int saved_errno = errno;
-    while(waitpid(-1, NULL, WNOHANG) > 0);
-    errno = saved_errno;
-}
-
 int main(int argc, char **argv)
 {
-    // Init server with arguments
-    http_server server = HTTP_SERVER_DEFAULT;
+    http_server server = http_server_new();
     parse_args(argc, argv, &server);
     
     // Turn into daemon if selected
     if (server.daemon) daemon(1, 1);
     
+    printf("Starting nubserv with:\n port: %s\n backlog: %d\n docroot: %s\n logfile: %s\n\n",
+           server.port, server.backlog, server.docroot, server.log_file);
     
-    printf("Init with: port:%s backlog:%d docroot:%s\n", server.port, server.backlog, server.docroot);
-    
-    // setup SIGCHLD signal handling
-    struct sigaction sa;
-    
-    sa.sa_handler = sigchld_handler;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = SA_RESTART;
-    if (sigaction(SIGCHLD, &sa, NULL) == -1) {
-        perror("sigaction");
-        exit(1);
-    }
-    
-    server_init(&server);
-    server_main_loop(&server);
+    http_server_start(&server);
+    http_server_run(&server);
     
     return 0;
 }
