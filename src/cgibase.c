@@ -10,6 +10,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "cgibase.h"
 #include "request.h"
@@ -55,11 +56,9 @@ exec_cgi(int sock, http_request *request, char *file_path)
         dup2(pipefd[0], STDIN_FILENO);
         close(pipefd[0]);
         execle(file_path, strrchr(file_path, '/')+1, (char *)NULL, envp);
-        
     } else if (c_pid == -1) { // Couldnt fork
         
         send(sock, "HTTP/1.1 404 Not Found\r\n", 17, 0);
-        
     }
     else
     { // Parent
