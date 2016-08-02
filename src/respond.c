@@ -142,11 +142,19 @@ send_file(int sock, char *file_path, file_stats *fs)
         printf("Mac: Sendfile error: %d\n", errno);
     }
 #elif __linux__
-    ssize_t sent = 0;
-    while (sent < fs->bytes)
+    size_t sent = 0;
+    ssize_t ret;
+    while ( (ret = sendfile(sock, f, &len, fs->bytes - sent)) > 0 )
     {
-        sent += sendfile(sock, f, &len, fs->bytes - sent);
+        sent += ret;
+        
+        if (sent >= fs->bytes) break;
     }
+//    ssize_t sent = 0;
+//    while (sent < fs->bytes)
+//    {
+//        sent += sendfile(sock, f, &len, fs->bytes - sent);
+//    }
 #endif
     close(f);
     
