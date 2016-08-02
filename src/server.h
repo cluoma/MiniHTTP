@@ -9,6 +9,8 @@
 #ifndef MiniHTTP_server_h
 #define MiniHTTP_server_h
 
+#include <sys/socket.h>
+
 #include "request.h"
 
 typedef struct
