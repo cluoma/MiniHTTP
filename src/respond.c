@@ -133,6 +133,7 @@ send_file(int sock, char *file_path, file_stats *fs)
     if ( f <= 0 )
     {
         printf("Cannot open file %d\n", errno);
+        return;
     }
     
     off_t len = 0;
@@ -150,11 +151,6 @@ send_file(int sock, char *file_path, file_stats *fs)
         
         if (sent >= fs->bytes) break;
     }
-//    ssize_t sent = 0;
-//    while (sent < fs->bytes)
-//    {
-//        sent += sendfile(sock, f, &len, fs->bytes - sent);
-//    }
 #endif
     close(f);
     
