@@ -91,8 +91,6 @@ void receive_data(int sock, http_parser *parser)
     
     request->request = str;
     request->request_len = t_recvd;
-//    printf("TOTAL RECEIVED: %d\n", (int)request->request_len);
-//    printf("BODY LENGTH: %d\n", (int)request->content_length);
     return;
     
 bad:
