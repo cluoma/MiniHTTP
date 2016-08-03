@@ -42,13 +42,11 @@ http_server http_server_new();
 int http_server_start(http_server *server);
 void http_server_run(http_server *server);
 
-void write_log(http_server *server, http_request *request);
+void write_log(http_server *server, http_request *request, char *client_ip);
 
 /*
  * Reaps child processes from when requests are finished
  */
 void sigchld_handler(int s);
-
-//void parse_args(int argc, char **argv, http_server *server);
 
 #endif
