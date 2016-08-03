@@ -51,7 +51,14 @@ int main(int argc, char **argv)
     parse_args(argc, argv, &server);
     
     // Turn into daemon if selected
-    if (server.daemon) daemon(1, 1);
+    if (server.daemon)
+    {
+        if(daemon(1, 1) == -1)
+        {
+            perror("Daemon:");
+            exit(1);
+        }
+    }
     
     printf("Starting nubserv with:\n port: %s\n backlog: %d\n docroot: %s\n logfile: %s\n\n",
            server.port, server.backlog, server.docroot, server.log_file);
