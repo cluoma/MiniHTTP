@@ -1,7 +1,7 @@
 language: c
+dist: jessie
 os:
 - linux
-- osx
 compiler:
   - clang
   - gcc
