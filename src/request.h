@@ -16,6 +16,10 @@
 
 #define REQUEST_BUF_SIZE 500
 
+#define HTTP_KEEP_ALIVE     0
+#define HTTP_CLOSE          1
+#define HTTP_ERROR          2
+
 /*
  * Struct is populated when parsing
  */
@@ -37,6 +41,9 @@ struct http_request {
     
     size_t content_length;
     size_t header_length;
+    
+    // Keep-alive
+    unsigned int keep_alive;
     
     // Headers
     size_t header_fields;
@@ -61,6 +68,9 @@ int header_field_cb(http_parser* parser, const char *at, size_t length);
 int header_value_cb(http_parser* parser, const char *at, size_t length);
 int header_end_cb(http_parser* parser);
 int body_cb(http_parser* parser, const char *at, size_t length);
+
+/* Check if client asked to keep connections alive, 1 yes, 0 no */
+int is_keep_alive(http_request *request);
 
 /* Free memory used by http_request */
 void init_request(http_request *request);

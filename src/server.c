@@ -120,25 +120,51 @@ http_server_run(http_server *server)
         if (!fork()) { // this is the child process
             close(server->sock); // child doesn't need the listener
             
-            // init http parser
-            http_parser *parser = malloc(sizeof(http_parser));
-            http_parser_init(parser, HTTP_REQUEST);
+//            // init http parser
+//            http_parser *parser = malloc(sizeof(http_parser));
+//            http_parser_init(parser, HTTP_REQUEST);
+//            
+//            // Create request data
+//            http_request request;
+//            init_request(&request);
+//            parser->data = &request;
+//            
+//            // read request data from client
+//            receive_data(conn_fd, parser);
+//            
+//            write_log(server, &request, s);
+//            
+//            handle_request(conn_fd, server, &request);
             
-            // Create request data
+            
+            http_parser *parser;
             http_request request;
             init_request(&request);
-            parser->data = &request;
-            
-            // read request data from client
-            receive_data(conn_fd, parser);
-            
-            write_log(server, &request, s);
-            
-            handle_request(conn_fd, server, &request);
+            while (request.keep_alive == HTTP_KEEP_ALIVE)
+            {
+                free_request(&request);
+                // init http parser
+                parser = malloc(sizeof(http_parser));
+                http_parser_init(parser, HTTP_REQUEST);
+                
+                // Create request data
+                init_request(&request);
+                parser->data = &request;
+                
+                // read request data from client
+                receive_data(conn_fd, parser);
+                
+                write_log(server, &request, s);
+                
+                if (request.keep_alive != HTTP_ERROR)
+                    handle_request(conn_fd, server, &request);
+                
+                free(parser);
+            }
             
             // Cleanup
             free_request(&request);
-            free(parser);
+            //free(parser);
             close(conn_fd);
             exit(0);
         }

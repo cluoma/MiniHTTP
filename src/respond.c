@@ -55,6 +55,7 @@ handle_request(int sock, http_server *server, http_request *request)
             {
                 if (strcasecmp(fs.extension, "cgi") == 0)
                 {
+                    request->keep_alive = HTTP_CLOSE;
                     exec_cgi(sock, request, file_path);
                 } else {
                     send_header(sock, &rh, &fs);
@@ -62,7 +63,7 @@ handle_request(int sock, http_server *server, http_request *request)
                 }
             } else
             {
-                send(sock, "HTTP/1.1 404 Not Found\n", 23, 0);
+                send(sock, "HTTP/1.1 404 Not Found\r\n\r\n", 26, 0);
             }
             free(file_path);
         }

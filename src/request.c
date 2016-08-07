@@ -52,7 +52,7 @@ void receive_data(int sock, http_parser *parser)
     struct timeval timeout;
     FD_ZERO (&set);
     FD_SET (sock, &set);
-    timeout.tv_sec = 2;
+    timeout.tv_sec = 5;
     timeout.tv_usec = 0;
     
     // Read up to end of header received
@@ -80,7 +80,17 @@ void receive_data(int sock, http_parser *parser)
     // Something went wrong
     // Connection closed by client, recv error
     // Select timeout
-    if (n_recvd <= 0 || sel <= 0) {
+    if (sel == 0)
+    {
+        //perror("receive data timeout");
+        goto bad;
+    }
+    if (sel < 0) {
+        perror("receive data select error");
+        goto bad;
+    }
+    if (n_recvd <= 0) {
+        perror("receive data amount error");
         goto bad;
     }
     
@@ -91,13 +101,19 @@ void receive_data(int sock, http_parser *parser)
     
     request->request = str;
     request->request_len = t_recvd;
+    
+    if (is_keep_alive(request))
+        request->keep_alive = HTTP_KEEP_ALIVE;
+    else
+        request->keep_alive = HTTP_CLOSE;
+    
     return;
     
 bad:
     if (str != NULL)
         free(str);
-    free_request(request);
-    perror("receive data");
+    request->keep_alive = HTTP_ERROR;
+    //perror("receive data");
     return;
 }
 
@@ -124,10 +140,30 @@ ssize_t read_chunk(int sock, char **str, ssize_t t_recvd, size_t chunk_size)
     return n_recvd;
 }
 
+int is_keep_alive(http_request *request)
+{
+    for (size_t i = 0; i < request->header_fields; i++)
+    {
+        if (strncasecmp(request->header_field[i], "Connection", request->header_field_len[i]) == 0)
+        {
+            if (strncasecmp(request->header_value[i], "keep-alive", request->header_value_len[i]) == 0)
+            {
+                return 1;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+    }
+    return 0;
+}
+
 void init_request(http_request *request)
 {
+    request->keep_alive = HTTP_KEEP_ALIVE;
+    request->request = NULL;
     request->content_length = 0;
-    
     request->header_fields = 0;
     request->header_values = 0;
     request->header_field = NULL;

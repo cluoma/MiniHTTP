@@ -58,7 +58,7 @@ exec_cgi(int sock, http_request *request, char *file_path)
         execle(file_path, strrchr(file_path, '/')+1, (char *)NULL, envp);
     } else if (c_pid == -1) { // Couldnt fork
         
-        send(sock, "HTTP/1.1 404 Not Found\r\n", 17, 0);
+        send(sock, "HTTP/1.1 404 Not Found\r\n\r\n", 26, 0);
     }
     else
     { // Parent
