@@ -34,22 +34,22 @@ int
 http_server_start(http_server *server)
 {
     struct addrinfo hints, *servinfo, *p;
-    
+
     int rv;
     int yes = 1;
-    
+
     // Fill hints, all unused elements must be 0 or null
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC; // ipv4/6 don't care
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE; // use my IP
-    
+
     // Get info for us
     if ((rv = getaddrinfo(NULL, server->port, &hints, &servinfo)) != 0) {
         fprintf(stderr, "server: getaddrinfo: %s\n", gai_strerror(rv));
         goto fail_start;
     }
-    
+
     // loop through all the results and bind to the first we can
     for(p = servinfo; p != NULL; p = p->ai_next) {
         if ((server->sock = socket(p->ai_family, p->ai_socktype,
@@ -69,14 +69,14 @@ http_server_start(http_server *server)
         break;
     }
     freeaddrinfo(servinfo);
-    
+
     if (p == NULL ||
         listen(server->sock, server->backlog) == -1)  {
         goto fail_start;
     }
-    
+
     return 0;
-    
+
 fail_start:
     perror("Failed to start HTTP server");
     return -1;
@@ -94,13 +94,13 @@ http_server_run(http_server *server)
         perror("sigaction");
         exit(1);
     }
-    
+
     struct sockaddr_storage their_addr; // connector's address information
     socklen_t sin_size;
     char s[INET6_ADDRSTRLEN];
-    
+
     int conn_fd;
-    
+
     // Wait for connections forever
     while(1) {
         sin_size = sizeof their_addr;
@@ -109,34 +109,34 @@ http_server_run(http_server *server)
             perror("accept");
             continue;
         }
-        
+
         inet_ntop(their_addr.ss_family,
                   get_in_addr((struct sockaddr *)&their_addr),
                   s, sizeof s);
         //printf("server: got connection from %s\n", s);
-        
-        
-        
+
+
+
         if (!fork()) { // this is the child process
             close(server->sock); // child doesn't need the listener
-            
+
 //            // init http parser
 //            http_parser *parser = malloc(sizeof(http_parser));
 //            http_parser_init(parser, HTTP_REQUEST);
-//            
+//
 //            // Create request data
 //            http_request request;
 //            init_request(&request);
 //            parser->data = &request;
-//            
+//
 //            // read request data from client
 //            receive_data(conn_fd, parser);
-//            
+//
 //            write_log(server, &request, s);
-//            
+//
 //            handle_request(conn_fd, server, &request);
-            
-            
+
+
             http_parser *parser;
             http_request request;
             init_request(&request);
@@ -146,22 +146,23 @@ http_server_run(http_server *server)
                 // init http parser
                 parser = malloc(sizeof(http_parser));
                 http_parser_init(parser, HTTP_REQUEST);
-                
+
                 // Create request data
                 init_request(&request);
                 parser->data = &request;
-                
+
                 // read request data from client
                 receive_data(conn_fd, parser);
-                
-                write_log(server, &request, s);
-                
+
                 if (request.keep_alive != HTTP_ERROR)
+                {
+                    write_log(server, &request, s);
                     handle_request(conn_fd, server, &request);
-                
+                }
+
                 free(parser);
             }
-            
+
             // Cleanup
             free_request(&request);
             //free(parser);
@@ -196,7 +197,7 @@ write_log(http_server *server, http_request *request, char *client_ip)
 {
     FILE *f = fopen(server->log_file, "a"); // open for writing
     if (f == NULL) return;
-    
+
     // Get current time
     time_t timer;
     char buffer[26];
@@ -204,25 +205,25 @@ write_log(http_server *server, http_request *request, char *client_ip)
     time(&timer);
     tm_info = gmtime(&timer);
     strftime(buffer, 26, "%Y:%m:%d %H:%M:%S", tm_info);
-    
+
     // Log method
     fwrite(http_method_str(request->method), 1, strlen(http_method_str(request->method)), f);
     fwrite(",", 1, 1, f);
-    
+
     // Log client ip
     fwrite(client_ip, 1, strlen(client_ip), f);
     fwrite(",", 1, 1, f);
-    
+
     // Log URI
     if (strcmp(http_method_str(request->method), "<unknown>") != 0)
     {
         fwrite(request->uri, 1, request->uri_len, f);
     }
     fwrite(",", 1, 1, f);
-    
+
     // Log GMT timestamp
     fwrite(buffer, 1, strlen(buffer), f);
     fwrite("\n", 1, 1, f);
-    
+
     fclose(f);
 }

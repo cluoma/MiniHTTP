@@ -42,14 +42,14 @@ void parse_args(int argc, char **argv, http_server *server)
                 exit(1);
         }
     }
-    
+
 }
 
 int main(int argc, char **argv)
 {
     http_server server = http_server_new();
     parse_args(argc, argv, &server);
-    
+
     // Turn into daemon if selected
     if (server.daemon)
     {
@@ -59,12 +59,13 @@ int main(int argc, char **argv)
             exit(1);
         }
     }
-    
+
     printf("Starting nubserv with:\n port: %s\n backlog: %d\n docroot: %s\n logfile: %s\n\n",
            server.port, server.backlog, server.docroot, server.log_file);
-    
-    http_server_start(&server);
+
+    if (http_server_start(&server) != 0)
+      return 1;
     http_server_run(&server);
-    
+
     return 0;
 }
