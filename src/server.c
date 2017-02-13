@@ -75,7 +75,13 @@ http_server_start(http_server *server)
         listen(server->sock, server->backlog) == -1)  {
         goto fail_start;
     }
+<<<<<<< Updated upstream
 
+=======
+    
+    //printf("%s\n", p->)
+    
+>>>>>>> Stashed changes
     return 0;
 
 fail_start:
