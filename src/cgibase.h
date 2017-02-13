@@ -14,5 +14,6 @@
 #include "request.h"
 
 void exec_cgi(int sock, http_request *request, char *file_path);
+void exec_php(int sock, http_request *request, char *file_path);
 
 #endif /* defined(__MiniHTTP__cgibase__) */

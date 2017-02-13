@@ -30,8 +30,9 @@ handle_request(int sock, http_server *server, http_request *request)
 {
     response_header rh;
     rh.status.version = "HTTP/1.1";
-    
+
     switch (request->method) {
+        case HTTP_POST:
         case HTTP_GET:
         {
             char *url = url_path(request);
@@ -41,60 +42,36 @@ handle_request(int sock, http_server *server, http_request *request)
                 memset(url, 0, strlen("/cgi-bin/cblog.cgi")+1);
                 strcpy(url, "/cgi-bin/cblog.cgi");
             }
-            
+
             char *file_path = malloc(strlen(server->docroot) + strlen(url) + 1);
             memset(file_path, 0, strlen(server->docroot) + strlen(url) + 1);
             file_path = strcat(file_path, server->docroot);
             file_path = strcat(file_path, url);
             free(url);
-            
+
             file_stats fs = get_file_stats(file_path);
             build_header(&rh, &fs);
-            
+
             if (fs.found)
             {
                 if (strcasecmp(fs.extension, "cgi") == 0)
                 {
                     request->keep_alive = HTTP_CLOSE;
                     exec_cgi(sock, request, file_path);
-                } else {
+                }
+                else if (strcasecmp(fs.extension, "php") == 0)
+                {
+                    request->keep_alive = HTTP_CLOSE;
+                    exec_php(sock, request, file_path);
+                }
+                else
+                {
                     send_header(sock, &rh, &fs);
                     send_file(sock, file_path, &fs);
                 }
             } else
             {
                 send(sock, "HTTP/1.1 404 Not Found\r\n\r\n", 26, 0);
-            }
-            free(file_path);
-        }
-            break;
-        case HTTP_POST:
-        {
-            char *url = url_path(request);
-            
-            char *file_path = malloc(strlen(server->docroot) + strlen(url) + 1);
-            memset(file_path, 0, strlen(server->docroot) + strlen(url) + 1);
-            file_path = strcat(file_path, server->docroot);
-            file_path = strcat(file_path, url);
-            free(url);
-            
-            printf("%s\n", file_path);
-            
-            file_stats fs = get_file_stats(file_path);
-            build_header(&rh, &fs);
-            
-            if (fs.found)
-            {
-                if (strcasecmp(fs.extension, "cgi") == 0)
-                {
-                    exec_cgi(sock, request, file_path);
-                } else {
-                    send_header(sock, &rh, &fs);
-                    send_file(sock, file_path, &fs);
-                }
-            } else
-            {
-                send(sock, "HTTP/1.1 404 Not Found\n", 23, 0);
             }
             free(file_path);
         }
@@ -112,7 +89,7 @@ send_header(int sock, response_header *rh, file_stats *fs)
     send(sock, " ", 1, 0);
     send(sock, rh->status.status, strlen(rh->status.status), 0);
     send(sock, "\r\n", 2, 0);
-    
+
     // File content
     char *buf;
     asprintf(&buf, "Content-Type: %s\r\n", mime_from_ext(fs->extension));
@@ -120,7 +97,7 @@ send_header(int sock, response_header *rh, file_stats *fs)
     asprintf(&buf, "Content-Length: %lld\r\n", (long long int)fs->bytes);
     send(sock, buf, strlen(buf), 0);
     free(buf);
-    
+
     // End of Header
     send(sock, "\r\n", 2, 0);
 }
@@ -129,14 +106,14 @@ send_header(int sock, response_header *rh, file_stats *fs)
 void
 send_file(int sock, char *file_path, file_stats *fs)
 {
-    
+
     int f = open(file_path, O_RDONLY);
     if ( f <= 0 )
     {
         printf("Cannot open file %d\n", errno);
         return;
     }
-    
+
     off_t len = 0;
 #ifdef __APPLE__
     if ( sendfile(f, sock, 0, &len, NULL, 0) < 0 )
@@ -149,12 +126,12 @@ send_file(int sock, char *file_path, file_stats *fs)
     while ( (ret = sendfile(sock, f, &len, fs->bytes - sent)) > 0 )
     {
         sent += ret;
-        
+
         if (sent >= fs->bytes) break;
     }
 #endif
     close(f);
-    
+
 }
 
 // Needs a lot of work
@@ -178,7 +155,7 @@ get_file_stats(char *file_path)
 {
     file_stats fs;
     struct stat s;
-    
+
     if (stat(file_path, &s) == -1 ||
         !S_ISREG(s.st_mode) || S_ISDIR(s.st_mode)) {
         fs.found = 0;
@@ -188,7 +165,7 @@ get_file_stats(char *file_path)
         fs.extension = strrchr(file_path, '.') + 1; // +1 because of '.'
         fs.name = NULL;
     }
-    
+
     return fs;
 }
 
@@ -241,13 +218,13 @@ sanitize_path(char *path)
 {
     char *token, *tofree;
     tofree = path;
-    
+
     char *clean = malloc(strlen(path) + 1);
     memset(clean, 0, strlen(path));
-    
+
     char **argv = malloc(sizeof(char *));
     int argc = 0;
-    
+
     // Tokenize
     while ((token = strsep(&path, "/")) != NULL) {
         if (strcmp(token, ".") == 0 || strcmp(token, "") == 0) {
@@ -260,15 +237,15 @@ sanitize_path(char *path)
             argv = realloc(argv, sizeof(char *) * (argc + 1));
         }
     }
-    
+
     // Combine cleaned filepath
     for (int i = 0; i < argc; i++) {
         strcat(clean, "/");
         strcat(clean, argv[i]);
     }
-    
+
     free(tofree);
     free(argv);
-    
+
     return clean;
 }

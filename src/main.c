@@ -5,7 +5,8 @@
 #include "server.h"
 
 
-void parse_args(int argc, char **argv, http_server *server)
+void
+parse_args(int argc, char **argv, http_server *server)
 {
     int c;
     while ((c = getopt(argc, argv, "p:d:b:al:")) != -1) {
@@ -45,7 +46,8 @@ void parse_args(int argc, char **argv, http_server *server)
 
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
     http_server server = http_server_new();
     parse_args(argc, argv, &server);
@@ -60,7 +62,7 @@ int main(int argc, char **argv)
         }
     }
 
-    printf("Starting nubserv with:\n port: %s\n backlog: %d\n docroot: %s\n logfile: %s\n\n",
+    printf("Starting minihttp with:\n port: %s\n backlog: %d\n docroot: %s\n logfile: %s\n\n",
            server.port, server.backlog, server.docroot, server.log_file);
 
     if (http_server_start(&server) != 0)

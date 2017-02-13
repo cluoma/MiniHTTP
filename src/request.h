@@ -28,23 +28,23 @@ struct http_request {
     // Request buffer
     char *request;
     size_t request_len;
-    
+
     // First line
     int method;
     const char *uri;
     size_t uri_len;
     struct http_parser_url parser_url;
-    
+
     // HTTP version
     const char *version;
     size_t version_len;
-    
+
     size_t content_length;
     size_t header_length;
-    
+
     // Keep-alive
     unsigned int keep_alive;
-    
+
     // Headers
     size_t header_fields;
     size_t header_values;
@@ -52,7 +52,7 @@ struct http_request {
     size_t *header_field_len;
     const char **header_value;
     size_t *header_value_len;
-    
+
     // Body
     const char *body;
     size_t body_len;
@@ -69,8 +69,8 @@ int header_value_cb(http_parser* parser, const char *at, size_t length);
 int header_end_cb(http_parser* parser);
 int body_cb(http_parser* parser, const char *at, size_t length);
 
-/* Check if client asked to keep connections alive, 1 yes, 0 no */
-int is_keep_alive(http_request *request);
+/* Set keep-alive status from client request */
+void set_keep_alive(http_request *request);
 
 /* Free memory used by http_request */
 void init_request(http_request *request);

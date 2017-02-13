@@ -40,7 +40,8 @@ http_server_start(http_server *server)
 
     // Fill hints, all unused elements must be 0 or null
     memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC; // ipv4/6 don't care
+    //hints.ai_family = AF_USPEC; // ipv4/6 don't care
+    hints.ai_family = AF_INET6;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE; // use my IP
 
@@ -95,7 +96,8 @@ http_server_run(http_server *server)
         exit(1);
     }
 
-    struct sockaddr_storage their_addr; // connector's address information
+    // Client's address information
+    struct sockaddr_storage their_addr;
     socklen_t sin_size;
     char s[INET6_ADDRSTRLEN];
 
@@ -110,62 +112,46 @@ http_server_run(http_server *server)
             continue;
         }
 
+        // Store client IP address into string s
         inet_ntop(their_addr.ss_family,
                   get_in_addr((struct sockaddr *)&their_addr),
                   s, sizeof s);
-        //printf("server: got connection from %s\n", s);
 
-
-
+        // Fork and handle request
         if (!fork()) { // this is the child process
             close(server->sock); // child doesn't need the listener
 
-//            // init http parser
-//            http_parser *parser = malloc(sizeof(http_parser));
-//            http_parser_init(parser, HTTP_REQUEST);
-//
-//            // Create request data
-//            http_request request;
-//            init_request(&request);
-//            parser->data = &request;
-//
-//            // read request data from client
-//            receive_data(conn_fd, parser);
-//
-//            write_log(server, &request, s);
-//
-//            handle_request(conn_fd, server, &request);
-
-
+            // Init http parser and request structures
             http_parser *parser;
             http_request request;
             init_request(&request);
+
+            // Recieve requests from client while keep-alive requested
             while (request.keep_alive == HTTP_KEEP_ALIVE)
             {
-                free_request(&request);
                 // init http parser
                 parser = malloc(sizeof(http_parser));
                 http_parser_init(parser, HTTP_REQUEST);
 
-                // Create request data
+                // Create request data, add it to parser
                 init_request(&request);
                 parser->data = &request;
 
                 // read request data from client
                 receive_data(conn_fd, parser);
 
+                // Handle request if no error returned
                 if (request.keep_alive != HTTP_ERROR)
                 {
                     write_log(server, &request, s);
                     handle_request(conn_fd, server, &request);
                 }
 
+                free_request(&request);
                 free(parser);
             }
 
             // Cleanup
-            free_request(&request);
-            //free(parser);
             close(conn_fd);
             exit(0);
         }
@@ -184,7 +170,8 @@ get_in_addr(struct sockaddr *sa)
 }
 
 // Reap zombie processes
-void sigchld_handler(int s)
+void
+sigchld_handler(int s)
 {
     int saved_errno = errno;
     while(waitpid(-1, NULL, WNOHANG) > 0);
