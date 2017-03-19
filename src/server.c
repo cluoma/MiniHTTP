@@ -139,7 +139,7 @@ http_server_run(http_server *server)
 
                 // read request data from client
                 receive_data(conn_fd, parser);
-
+                
                 // Handle request if no error returned
                 if (request.keep_alive != HTTP_ERROR)
                 {

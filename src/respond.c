@@ -41,6 +41,9 @@ handle_request(int sock, http_server *server, http_request *request)
                 url = realloc(url, strlen("/cgi-bin/cblog.cgi")+1);
                 memset(url, 0, strlen("/cgi-bin/cblog.cgi")+1);
                 strcpy(url, "/cgi-bin/cblog.cgi");
+                // url = realloc(url, strlen("/index.php")+1);
+                // memset(url, 0, strlen("/index.php")+1);
+                // strcpy(url, "/index.php");
             }
 
             char *file_path = malloc(strlen(server->docroot) + strlen(url) + 1);
@@ -48,6 +51,8 @@ handle_request(int sock, http_server *server, http_request *request)
             file_path = strcat(file_path, server->docroot);
             file_path = strcat(file_path, url);
             free(url);
+
+            printf("FILE PATH: %s\n", file_path);
 
             file_stats fs = get_file_stats(file_path);
             build_header(&rh, &fs);
@@ -59,11 +64,11 @@ handle_request(int sock, http_server *server, http_request *request)
                     request->keep_alive = HTTP_CLOSE;
                     exec_cgi(sock, request, file_path);
                 }
-                else if (strcasecmp(fs.extension, "php") == 0)
-                {
-                    request->keep_alive = HTTP_CLOSE;
-                    exec_php(sock, request, file_path);
-                }
+                // else if (strcasecmp(fs.extension, "php") == 0)
+                // {
+                //     request->keep_alive = HTTP_CLOSE;
+                //     exec_php(sock, request, file_path);
+                // }
                 else
                 {
                     send_header(sock, &rh, &fs);

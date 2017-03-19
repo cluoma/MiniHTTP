@@ -70,6 +70,7 @@ receive_data(int sock, http_parser *parser)
             break;
         }
     }
+
     // Do we need more data based on content-length?
     while (t_recvd < request->content_length + request->header_length &&
            (sel = select(sock+1, &set, NULL, NULL, &timeout)) &&
@@ -77,6 +78,10 @@ receive_data(int sock, http_parser *parser)
     {
         t_recvd += n_recvd;
     }
+
+    printf("header_length: %d\n", request->header_length);
+    printf("content_length: %d\n", request->content_length);
+    printf("t_recvd: %d\n", t_recvd);
 
     // Something went wrong
     // Connection closed by client, recv error
@@ -142,6 +147,7 @@ read_chunk(int sock, char **str, ssize_t t_recvd, size_t chunk_size)
 
     tmp[t_recvd+n_recvd] = '\0';
     (*str) = tmp;
+    //printf("postdata: %s\n", (*str));
     return n_recvd;
 }
 
@@ -168,18 +174,41 @@ set_keep_alive(http_request *request)
     return;
 }
 
+// Return the header value for a given header key
+// Caller must free afterwards
+char *
+request_header_val(http_request *request, const char*header_key)
+{
+    for (size_t i = 0; i < request->header_fields; i++)
+    {
+        if (strncasecmp(request->header_field[i], header_key, request->header_field_len[i]) == 0)
+        {
+            char *header_val = calloc(1, request->header_value_len[i] + 1);
+            memcpy(header_val, request->header_value[i], request->header_value_len[i]);
+            return header_val;
+        }
+    }
+    return NULL;
+}
+
 void
 init_request(http_request *request)
 {
     request->keep_alive = HTTP_KEEP_ALIVE;
     request->request = NULL;
+    request->request_len = 0;
+    request->uri = NULL;
+    request->uri_len = 0;
     request->content_length = 0;
+    request->header_length = 0;
     request->header_fields = 0;
     request->header_values = 0;
     request->header_field = NULL;
     request->header_field_len = NULL;
     request->header_value = NULL;
     request->header_value_len = NULL;
+
+    http_parser_url_init(&(request->parser_url));
 }
 
 void
@@ -195,6 +224,8 @@ free_request(http_request *request)
         free(request->header_value);
     if (request->header_value_len != NULL)
         free(request->header_value_len);
+    if (request->uri != NULL)
+        free(request->uri);
 }
 
 
@@ -212,7 +243,9 @@ url_cb(http_parser* parser, const char *at, size_t length)
 {
     http_request *request = parser->data;
 
-    request->uri = at;
+    request->uri = calloc(1, length + 1);
+    strncat(request->uri, at, length);
+    //request->uri = at;
     request->uri_len = length;
 
     http_parser_parse_url(at, length, 1, &(request->parser_url));

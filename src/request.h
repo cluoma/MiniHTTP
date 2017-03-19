@@ -31,7 +31,7 @@ struct http_request {
 
     // First line
     int method;
-    const char *uri;
+    char *uri;
     size_t uri_len;
     struct http_parser_url parser_url;
 
@@ -71,6 +71,9 @@ int body_cb(http_parser* parser, const char *at, size_t length);
 
 /* Set keep-alive status from client request */
 void set_keep_alive(http_request *request);
+
+char *
+request_header_val(http_request *request, const char*header_key);
 
 /* Free memory used by http_request */
 void init_request(http_request *request);
