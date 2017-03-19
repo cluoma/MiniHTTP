@@ -53,8 +53,8 @@ receive_data(int sock, http_parser *parser)
     struct timeval timeout;
     FD_ZERO (&set);
     FD_SET (sock, &set);
-    timeout.tv_sec = 5;
-    timeout.tv_usec = 0;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 400000; //0.4 seconds
 
     // Read up to end of header received
     while((sel = select(sock+1, &set, NULL, NULL, &timeout)) &&
