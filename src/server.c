@@ -139,7 +139,7 @@ http_server_run(http_server *server)
 
                 // read request data from client
                 receive_data(conn_fd, parser);
-                
+
                 // Handle request if no error returned
                 if (request.keep_alive != HTTP_ERROR)
                 {
@@ -195,18 +195,18 @@ write_log(http_server *server, http_request *request, char *client_ip)
 
     // Log method
     fwrite(http_method_str(request->method), 1, strlen(http_method_str(request->method)), f);
-    fwrite(",", 1, 1, f);
+    fwrite(" ", 1, 1, f);
 
     // Log client ip
     fwrite(client_ip, 1, strlen(client_ip), f);
-    fwrite(",", 1, 1, f);
+    fwrite(" ", 1, 1, f);
 
     // Log URI
     if (strcmp(http_method_str(request->method), "<unknown>") != 0)
     {
         fwrite(request->uri, 1, request->uri_len, f);
     }
-    fwrite(",", 1, 1, f);
+    fwrite(" ", 1, 1, f);
 
     // Log GMT timestamp
     fwrite(buffer, 1, strlen(buffer), f);
