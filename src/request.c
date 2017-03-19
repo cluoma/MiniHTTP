@@ -207,6 +207,8 @@ init_request(http_request *request)
     request->header_field_len = NULL;
     request->header_value = NULL;
     request->header_value_len = NULL;
+    request->body = NULL;
+    request->body_len = 0;
 
     http_parser_url_init(&(request->parser_url));
 }
@@ -306,10 +308,13 @@ header_end_cb(http_parser* parser)
 int
 body_cb(http_parser* parser, const char *at, size_t length)
 {
+    if (length == 0) return 0;
+
     http_request *request = parser->data;
 
-    request->body = at;
-    request->body_len = length;
+    request->body = realloc(request->body, request->body_len + length);
+    memcpy(request->body + request->body_len, at, length);
+    request->body_len += length;
 
     return 0;
 }
