@@ -181,7 +181,6 @@ request_header_val(http_request *request, const char*header_key)
 {
     for (size_t i = 0; i < request->header_fields; i++)
     {
-        printf("HEADER VAL: %.*s\n", request->header_value_len[i], request->header_value[i]);
         if (strncasecmp(request->header_field[i], header_key, request->header_field_len[i]) == 0)
         {
             char *header_val = calloc(1, request->header_value_len[i] + 1);

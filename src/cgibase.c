@@ -45,6 +45,10 @@ exec_cgi(int sock, http_request *request, char *file_path)
         asprintf(&envp[3], "CONTENT_TYPE=%s", content_type);
         free(content_type);
     }
+    else
+    {
+        envp[3] = NULL;
+    }
 
     free(tmp);
 
