@@ -260,7 +260,8 @@ header_field_cb(http_parser* parser, const char *at, size_t length)
 
     request->header_field = realloc(request->header_field, sizeof(char*)*(request->header_fields + 1));
     request->header_field_len = realloc(request->header_field_len, sizeof(size_t)*(request->header_fields + 1));
-    request->header_field[request->header_fields] = at;
+    request->header_field[request->header_fields] = calloc(1, length + 1);
+    memcpy(request->header_field[request->header_fields], at, length);
     request->header_field_len[request->header_fields] = length;
 
     request->header_fields += 1;
@@ -275,7 +276,9 @@ header_value_cb(http_parser* parser, const char *at, size_t length)
 
     request->header_value = realloc(request->header_value, sizeof(char*)*(request->header_values + 1));
     request->header_value_len = realloc(request->header_value_len, sizeof(size_t)*(request->header_values + 1));
-    request->header_value[request->header_values] = at;
+    request->header_value[request->header_values] = calloc(1, length + 1);
+    memcpy(request->header_value[request->header_values], at, length);
+    //request->header_value[request->header_values] = at;
     request->header_value_len[request->header_values] = length;
 
     request->header_values += 1;
