@@ -145,6 +145,8 @@ http_server_run(http_server *server)
                 {
                     write_log(server, &request, s);
                     handle_request(conn_fd, server, &request);
+                    if (request.keep_alive != HTTP_KEEP_ALIVE)
+                        break;
                 }
 
                 free_request(&request);

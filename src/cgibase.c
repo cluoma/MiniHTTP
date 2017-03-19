@@ -56,7 +56,6 @@ exec_cgi(int sock, http_request *request, char *file_path)
     pipe(pipefd);
 
     //printf("FILE: %s\n", file_path);
-    write(pipefd[1], request->body, request->content_length);
 
     int c_pid = fork();
     if (c_pid == 0)
@@ -75,7 +74,8 @@ exec_cgi(int sock, http_request *request, char *file_path)
     else
     { // Parent
         close(pipefd[0]);
-
+        write(pipefd[1], request->body, request->body_len);
+        close(pipefd[1]);
         // Wait for child to finish
         waitpid(c_pid, NULL, 0);
 
@@ -84,8 +84,6 @@ exec_cgi(int sock, http_request *request, char *file_path)
         {
             free((*env));
         }
-
-        close(pipefd[1]);
     }
 }
 
