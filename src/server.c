@@ -193,7 +193,7 @@ write_log(http_server *server, http_request *request, char *client_ip)
     struct tm* tm_info;
     time(&timer);
     tm_info = gmtime(&timer);
-    strftime(buffer, 26, "%Y:%m:%d %H:%M:%S", tm_info);
+    strftime(buffer, 26, "%Y:%m:%d-%H:%M:%S", tm_info);
 
     // Log method
     fwrite(http_method_str(request->method), 1, strlen(http_method_str(request->method)), f);
