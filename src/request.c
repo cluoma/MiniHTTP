@@ -62,6 +62,10 @@ receive_data(int sock, http_parser *parser)
     {
         t_recvd += n_recvd;
 
+        // Reinitialize timeout
+        timeout.tv_sec = 0;
+        timeout.tv_usec = 400000;
+
         // Got end of headers, break out
         char *tmp;
         if ((tmp = strstr(str, "\r\n\r\n")) != NULL) {
@@ -77,6 +81,10 @@ receive_data(int sock, http_parser *parser)
            (n_recvd = read_chunk(sock, &str, t_recvd, REQUEST_BUF_SIZE)) > 0)
     {
         t_recvd += n_recvd;
+
+        // Reinitialize timeout
+        timeout.tv_sec = 0;
+        timeout.tv_usec = 400000;
     }
 
     printf("header_length: %d\n", request->header_length);
