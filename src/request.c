@@ -226,14 +226,35 @@ free_request(http_request *request)
 {
     if (request->request != NULL)
         free(request->request);
-    if (request->header_field != NULL)
+
+    // Free header fields (key)
+    if (request->header_fields > 0)
+    {
+        for (int i = 0; i < request->header_fields; i++)
+        {
+            free(request->header_field[i]);
+        }
         free(request->header_field);
+    }
     if (request->header_field_len != NULL)
         free(request->header_field_len);
-    if (request->header_value != NULL)
+
+    // Free header values (val)
+    if (request->header_fields > 0)
+    {
+        for (int i = 0; i < request->header_fields; i++)
+        {
+            free(request->header_value[i]);
+        }
         free(request->header_value);
+    }
     if (request->header_value_len != NULL)
         free(request->header_value_len);
+
+    // Free request body
+    if (request->body != NULL)
+        free(request->body);
+    
     if (request->uri != NULL)
         free(request->uri);
 }

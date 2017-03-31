@@ -99,6 +99,7 @@ send_header(int sock, response_header *rh, file_stats *fs)
     char *buf;
     asprintf(&buf, "Content-Type: %s\r\n", mime_from_ext(fs->extension));
     send(sock, buf, strlen(buf), 0);
+    free(buf);
     asprintf(&buf, "Content-Length: %lld\r\n", (long long int)fs->bytes);
     send(sock, buf, strlen(buf), 0);
     free(buf);
