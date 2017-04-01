@@ -87,16 +87,16 @@ receive_data(int sock, http_parser *parser)
         timeout.tv_usec = 400000;
     }
 
-    printf("header_length: %d\n", request->header_length);
-    printf("content_length: %d\n", request->content_length);
-    printf("t_recvd: %d\n", t_recvd);
+    //printf("header_length: %d\n", request->header_length);
+    //printf("content_length: %d\n", request->content_length);
+    //printf("t_recvd: %d\n", t_recvd);
 
     // Something went wrong
     // Connection closed by client, recv error
     // Select timeout
     if (sel == 0)
     {
-        perror("receive data timeout");
+        //perror("receive data timeout");
         goto bad;
     }
     if (sel < 0) {
@@ -119,10 +119,6 @@ receive_data(int sock, http_parser *parser)
 
     // Was a keep-alive requested?
     set_keep_alive(request);
-    // if (is_keep_alive(request))
-    //     request->keep_alive = HTTP_KEEP_ALIVE;
-    // else
-    //     request->keep_alive = HTTP_CLOSE;
 
     return;
 
@@ -254,7 +250,7 @@ free_request(http_request *request)
     // Free request body
     if (request->body != NULL)
         free(request->body);
-    
+
     if (request->uri != NULL)
         free(request->uri);
 }

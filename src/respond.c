@@ -52,7 +52,7 @@ handle_request(int sock, http_server *server, http_request *request)
             file_path = strcat(file_path, url);
             free(url);
 
-            printf("FILE PATH: %s\n", file_path);
+            //printf("FILE PATH: %s\n", file_path);
 
             file_stats fs = get_file_stats(file_path);
             build_header(&rh, &fs);
