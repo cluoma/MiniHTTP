@@ -139,7 +139,9 @@ read_chunk(int sock, char **str, ssize_t t_recvd, size_t chunk_size)
     ssize_t n_recvd = recv(sock, tmp+t_recvd, chunk_size, 0);
 
     if (n_recvd == 0 || n_recvd == -1) { // recv error
-        fprintf(stderr, "RECV\n");
+        //fprintf(stderr, "RECV\n");
+        perror("RECV");
+        fprintf(stderr, "n_recvd: %d\n", (int)n_recvd);
         return n_recvd;
     }
 

@@ -36,7 +36,7 @@ struct http_request {
     struct http_parser_url parser_url;
 
     // HTTP version
-    const char *version;
+    char *version;
     size_t version_len;
 
     size_t content_length;
@@ -48,13 +48,13 @@ struct http_request {
     // Headers
     size_t header_fields;
     size_t header_values;
-    const char **header_field;
+    char **header_field;
     size_t *header_field_len;
-    const char **header_value;
+    char **header_value;
     size_t *header_value_len;
 
     // Body
-    const char *body;
+    char *body;
     size_t body_len;
 };
 

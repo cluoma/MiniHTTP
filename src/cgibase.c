@@ -21,8 +21,14 @@ exec_cgi(int sock, http_request *request, char *file_path)
 {
     // Setup environ variables
     char *envp[5];
-    asprintf(&envp[0], "REQUEST_METHOD=%s", http_method_str(request->method));
-    asprintf(&envp[1], "CONTENT_LENGTH=%ld", (long int)request->content_length);
+    int bytes;
+
+    bytes = asprintf(&envp[0], "REQUEST_METHOD=%s", http_method_str(request->method));
+    if (bytes == -1) fprintf(stderr, "asprintf error");
+
+    bytes = asprintf(&envp[1], "CONTENT_LENGTH=%ld", (long int)request->content_length);
+    if (bytes == -1) fprintf(stderr, "asprintf error");
+
     envp[4] = NULL;
 
     char *tmp;
@@ -37,12 +43,15 @@ exec_cgi(int sock, http_request *request, char *file_path)
     {
         tmp = malloc(1); tmp[0] = '\0';
     }
-    asprintf(&envp[2], "QUERY_STRING=%s", tmp);
+    bytes = asprintf(&envp[2], "QUERY_STRING=%s", tmp);
+    if (bytes == -1) fprintf(stderr, "asprintf error");
 
     char *content_type = request_header_val(request, "Content-Type");
     if (content_type != NULL)
     {
-        asprintf(&envp[3], "CONTENT_TYPE=%s", content_type);
+        bytes = asprintf(&envp[3], "CONTENT_TYPE=%s", content_type);
+        if (bytes == -1) fprintf(stderr, "asprintf error");
+        
         free(content_type);
     }
     else
@@ -53,7 +62,15 @@ exec_cgi(int sock, http_request *request, char *file_path)
     free(tmp);
 
     int pipefd[2];
-    pipe(pipefd);
+    if (pipe(pipefd) == -1)
+    {
+        // Error: free envp and return
+        for (char **env = envp; (*env) != NULL; env++)
+        {
+            free((*env));
+        }
+        return;
+    }
 
     //printf("FILE: %s\n", file_path);
 
@@ -74,7 +91,10 @@ exec_cgi(int sock, http_request *request, char *file_path)
     else
     { // Parent
         close(pipefd[0]);
-        write(pipefd[1], request->body, request->body_len);
+        if (write(pipefd[1], request->body, request->body_len) != request->body_len)
+        {
+            // Do something about it
+        }
         close(pipefd[1]);
         // Wait for child to finish
         waitpid(c_pid, NULL, 0);
