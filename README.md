@@ -1,6 +1,6 @@
 ![Alt text](https://travis-ci.org/cluoma/MiniHTTP.svg?branch=master  "Master Branch")
 
-#MiniHTTP
+# MiniHTTP
 
 A simple webserver that implements a subset of HTTP/1.1. No external libraries are required to compile MiniHTTP and it compiles without warnings with '-Wall' on Raspbian Jessie. This is not to say there are no bugs (far from it). MiniHTTP is an educational project with lots of improvements to be made.
 
