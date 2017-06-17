@@ -20,7 +20,7 @@ void
 exec_cgi(int sock, http_request *request, char *file_path)
 {
     // Setup environ variables
-    char *envp[5];
+    char *envp[6];
     int bytes;
 
     bytes = asprintf(&envp[0], "REQUEST_METHOD=%s", http_method_str(request->method));
@@ -29,8 +29,7 @@ exec_cgi(int sock, http_request *request, char *file_path)
     bytes = asprintf(&envp[1], "CONTENT_LENGTH=%ld", (long int)request->content_length);
     if (bytes == -1) fprintf(stderr, "asprintf error");
 
-    envp[4] = NULL;
-
+    // Query string
     char *tmp;
     if ((request->parser_url.field_set >> UF_QUERY) & 1)
     {
@@ -45,21 +44,39 @@ exec_cgi(int sock, http_request *request, char *file_path)
     }
     bytes = asprintf(&envp[2], "QUERY_STRING=%s", tmp);
     if (bytes == -1) fprintf(stderr, "asprintf error");
+    free(tmp);
 
+    // SCRIPT_NAME
+    if ((request->parser_url.field_set >> UF_PATH) & 1)
+    {
+        tmp = malloc(request->parser_url.field_data[UF_PATH].len + 1);
+        strncpy(tmp,
+                request->uri+(request->parser_url.field_data[UF_PATH].off),
+                request->parser_url.field_data[UF_PATH].len);
+        tmp[request->parser_url.field_data[UF_PATH].len] = '\0';
+    } else
+    {
+        tmp = malloc(1); tmp[0] = '\0';
+    }
+    bytes = asprintf(&envp[3], "SCRIPT_NAME=%s", tmp);
+    if (bytes == -1) fprintf(stderr, "asprintf error");
+    free(tmp);
+
+    // Content Type
     char *content_type = request_header_val(request, "Content-Type");
     if (content_type != NULL)
     {
         bytes = asprintf(&envp[3], "CONTENT_TYPE=%s", content_type);
         if (bytes == -1) fprintf(stderr, "asprintf error");
-        
+
         free(content_type);
     }
     else
     {
-        envp[3] = NULL;
+        envp[4] = NULL;
     }
 
-    free(tmp);
+    envp[5] = NULL;
 
     int pipefd[2];
     if (pipe(pipefd) == -1)
