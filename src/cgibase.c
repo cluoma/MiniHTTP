@@ -66,7 +66,7 @@ exec_cgi(int sock, http_request *request, char *file_path)
     char *content_type = request_header_val(request, "Content-Type");
     if (content_type != NULL)
     {
-        bytes = asprintf(&envp[3], "CONTENT_TYPE=%s", content_type);
+        bytes = asprintf(&envp[4], "CONTENT_TYPE=%s", content_type);
         if (bytes == -1) fprintf(stderr, "asprintf error");
 
         free(content_type);
