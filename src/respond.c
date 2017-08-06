@@ -38,9 +38,9 @@ handle_request(int sock, http_server *server, http_request *request)
             char *url = url_path(request);
             if (strcmp(url, "") == 0)
             {
-                url = realloc(url, strlen("/cgi-bin/cblog.cgi")+1);
-                memset(url, 0, strlen("/cgi-bin/cblog.cgi")+1);
-                strcpy(url, "/cgi-bin/cblog.cgi");
+                url = realloc(url, strlen("/cgi-bin/bb.cgi")+1);
+                memset(url, 0, strlen("/cgi-bin/bb.cgi")+1);
+                strcpy(url, "/cgi-bin/bb.cgi");
                 // url = realloc(url, strlen("/index.php")+1);
                 // memset(url, 0, strlen("/index.php")+1);
                 // strcpy(url, "/index.php");
@@ -76,7 +76,7 @@ handle_request(int sock, http_server *server, http_request *request)
                 }
             } else
             {
-                send(sock, "HTTP/1.1 404 Not Found\r\n\r\n", 24, 0);
+                send(sock, "HTTP/1.1 404 Not Found\r\n", 24, 0);
                 send(sock, "Content-Length: 0\r\n\r\n", 21, 0);
             }
             free(file_path);
