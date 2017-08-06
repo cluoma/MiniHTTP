@@ -76,7 +76,8 @@ handle_request(int sock, http_server *server, http_request *request)
                 }
             } else
             {
-                send(sock, "HTTP/1.1 404 Not Found\r\n\r\n", 26, 0);
+                send(sock, "HTTP/1.1 404 Not Found\r\n\r\n", 24, 0);
+                send(sock, "Content-Length: 0\r\n\r\n", 21, 0);
             }
             free(file_path);
         }
@@ -94,6 +95,9 @@ send_header(int sock, response_header *rh, file_stats *fs)
     send(sock, " ", 1, 0);
     send(sock, rh->status.status, strlen(rh->status.status), 0);
     send(sock, "\r\n", 2, 0);
+
+    // Server info
+    send(sock, "Server: minihttp\r\n", 18, 0);
 
     // File content
     char *buf;

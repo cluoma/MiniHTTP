@@ -76,7 +76,7 @@ receive_data(int sock, http_parser *parser)
     }
 
     // Do we need more data based on content-length?
-    while (t_recvd < request->content_length + request->header_length &&
+    while ((t_recvd < request->content_length + request->header_length) &&
            (sel = select(sock+1, &set, NULL, NULL, &timeout)) &&
            (n_recvd = read_chunk(sock, &str, t_recvd, REQUEST_BUF_SIZE)) > 0)
     {
