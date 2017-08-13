@@ -57,12 +57,14 @@ receive_data(int sock, http_parser *parser)
     timeout.tv_usec = 400000; //0.4 seconds
 
     // Read up to end of header received
-    while((sel = select(sock+1, &set, NULL, NULL, &timeout)) &&
+    while((sel = select(sock+1, &set, NULL, NULL, &timeout) > 0) &&
           (n_recvd = read_chunk(sock, &str, t_recvd, REQUEST_BUF_SIZE)) > 0)
     {
         t_recvd += n_recvd;
 
-        // Reinitialize timeout
+        // Reinitialize timeout and select set
+	FD_ZERO(&set);
+	FD_SET(sock, &set);
         timeout.tv_sec = 0;
         timeout.tv_usec = 400000;
 
@@ -77,12 +79,14 @@ receive_data(int sock, http_parser *parser)
 
     // Do we need more data based on content-length?
     while ((t_recvd < request->content_length + request->header_length) &&
-           (sel = select(sock+1, &set, NULL, NULL, &timeout)) &&
+           (sel = select(sock+1, &set, NULL, NULL, &timeout) > 0) &&
            (n_recvd = read_chunk(sock, &str, t_recvd, REQUEST_BUF_SIZE)) > 0)
     {
         t_recvd += n_recvd;
 
-        // Reinitialize timeout
+        // Reinitialize timeout and select set
+	FD_ZERO(&set);
+	FD_SET(sock, &set);
         timeout.tv_sec = 0;
         timeout.tv_usec = 400000;
     }
