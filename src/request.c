@@ -77,6 +77,12 @@ receive_data(int sock, http_parser *parser)
         }
     }
 
+    // Reinitialize timeout and select set
+    FD_ZERO(&set);
+    FD_SET(sock, &set);
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 400000;
+
     // Do we need more data based on content-length?
     while ((t_recvd < request->content_length + request->header_length) &&
            (sel = select(sock+1, &set, NULL, NULL, &timeout) > 0) &&
