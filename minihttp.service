@@ -1,0 +1,13 @@
+[Unit]
+Description=minihttp HTTP Daemon
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/usr/local/bin
+ExecStart=/usr/local/bin/MiniHTTP -d /home/pi/www -b 50 -p 80 -l /home/pi/logs/logs.log
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target
