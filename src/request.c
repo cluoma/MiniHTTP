@@ -53,8 +53,8 @@ receive_data(int sock, http_parser *parser)
     struct timeval timeout;
     FD_ZERO (&set);
     FD_SET (sock, &set);
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 400000; //0.4 seconds
+    timeout.tv_sec = 5; //1 seconds
+    timeout.tv_usec = 50000; //0.4 seconds
 
     // Read up to end of header received
     while((sel = select(sock+1, &set, NULL, NULL, &timeout) > 0) &&
@@ -65,8 +65,8 @@ receive_data(int sock, http_parser *parser)
         // Reinitialize timeout and select set
 	FD_ZERO(&set);
 	FD_SET(sock, &set);
-        timeout.tv_sec = 0;
-        timeout.tv_usec = 400000;
+        timeout.tv_sec = 5;
+        timeout.tv_usec = 50000;
 
         // Got end of headers, break out
         char *tmp;
@@ -80,8 +80,8 @@ receive_data(int sock, http_parser *parser)
     // Reinitialize timeout and select set
     FD_ZERO(&set);
     FD_SET(sock, &set);
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 400000;
+    timeout.tv_sec = 5;
+    timeout.tv_usec = 50000;
 
     // Do we need more data based on content-length?
     while ((t_recvd < request->content_length + request->header_length) &&
@@ -93,8 +93,8 @@ receive_data(int sock, http_parser *parser)
         // Reinitialize timeout and select set
 	FD_ZERO(&set);
 	FD_SET(sock, &set);
-        timeout.tv_sec = 0;
-        timeout.tv_usec = 400000;
+        timeout.tv_sec = 5;
+        timeout.tv_usec = 50000;
     }
 
     //printf("header_length: %d\n", request->header_length);
