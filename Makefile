@@ -4,4 +4,5 @@ all:
 install:
 	sudo cp MiniHTTP /usr/local/bin/
 	sudo cp minihttp.service /etc/systemd/system/
+	sudo systemctl enable minihttp.service
 	sudo systemctl start minihttp.service

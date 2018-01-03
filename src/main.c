@@ -67,6 +67,9 @@ main(int argc, char **argv)
 
     if (http_server_start(&server) != 0)
       return 1;
+
+    fflush(stdout);
+
     http_server_run(&server);
 
     return 0;
