@@ -22,6 +22,14 @@
 
 #include "request.h"
 
+void
+print_headers(http_request *request)
+{
+    for (size_t i = 0; i < request->header_fields; i++)
+    {
+        printf("%s: %s\n", request->header_field[i], request->header_value[i]);
+    }
+}
 
 void
 receive_data(int sock, http_parser *parser)
@@ -97,10 +105,6 @@ receive_data(int sock, http_parser *parser)
         timeout.tv_usec = 50000;
     }
 
-    //printf("header_length: %d\n", request->header_length);
-    //printf("content_length: %d\n", request->content_length);
-    //printf("t_recvd: %d\n", t_recvd);
-
     // Something went wrong
     // Connection closed by client, recv error
     // Select timeout
@@ -113,7 +117,11 @@ receive_data(int sock, http_parser *parser)
         perror("receive data select error");
         goto bad;
     }
-    if (n_recvd <= 0) {
+    if (n_recvd == 0) {
+        // Connection closed
+        goto bad;
+    }
+    if (n_recvd < 0) {
         perror("receive data amount error");
         goto bad;
     }
@@ -129,6 +137,8 @@ receive_data(int sock, http_parser *parser)
 
     // Was a keep-alive requested?
     set_keep_alive(request);
+
+    //print_headers(request);
 
     return;
 
@@ -148,7 +158,12 @@ read_chunk(int sock, char **str, ssize_t t_recvd, size_t chunk_size)
     char *tmp = (*str);
     ssize_t n_recvd = recv(sock, tmp+t_recvd, chunk_size, 0);
 
-    if (n_recvd == 0 || n_recvd == -1) { // recv error
+    if (n_recvd == 0) // Connection closed by client
+    {
+        return n_recvd;
+    }
+
+    if (n_recvd == -1) { // recv error
         //fprintf(stderr, "RECV\n");
         perror("RECV");
         fprintf(stderr, "n_recvd: %d\n", (int)n_recvd);

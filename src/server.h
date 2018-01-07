@@ -26,6 +26,9 @@ typedef struct
 
     // Sock stuff
     int sock;
+
+    // Use zero-copy sendfile
+    int use_sendfile;
 } http_server;
 
 /* Default http_server values for when arguments are missing */
@@ -35,7 +38,8 @@ static const http_server HTTP_SERVER_DEFAULT = {
     "./docroot",        // default serving directory
     "./nubserv.log",    // default logfile
     0,                  // don't daemonize
-    0                   // fd 0
+    0,                  // fd 0
+    0                   // don't use sendfile
 };
 
 /* Get network address structure */

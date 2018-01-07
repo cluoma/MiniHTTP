@@ -9,7 +9,7 @@ void
 parse_args(int argc, char **argv, http_server *server)
 {
     int c;
-    while ((c = getopt(argc, argv, "p:d:b:al:")) != -1) {
+    while ((c = getopt(argc, argv, "p:d:b:al:s")) != -1) {
         switch (c) {
             case 'p':
                 server->port = optarg;
@@ -25,6 +25,9 @@ parse_args(int argc, char **argv, http_server *server)
                 break;
             case 'l':
                 server->log_file = optarg;
+                break;
+            case 's':
+                server->use_sendfile = 1;
                 break;
             case '?':
                 if (optopt == 'c' || optopt == 'd' || optopt == 'b')

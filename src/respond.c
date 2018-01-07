@@ -71,8 +71,8 @@ handle_request(int sock, http_server *server, http_request *request)
                 // }
                 else
                 {
-                    send_header(sock, &rh, &fs);
-                    send_file(sock, file_path, &fs);
+                    send_header(sock, request, &rh, &fs);
+                    send_file(sock, file_path, &fs, server->use_sendfile);
                 }
             } else
             {
@@ -90,7 +90,7 @@ handle_request(int sock, http_server *server, http_request *request)
 }
 
 void
-send_header(int sock, response_header *rh, file_stats *fs)
+send_header(int sock, http_request *request, response_header *rh, file_stats *fs)
 {
     // Status line
     send(sock, rh->status.version, strlen(rh->status.version), 0);
@@ -103,9 +103,19 @@ send_header(int sock, response_header *rh, file_stats *fs)
     // Server info
     send(sock, "Server: minihttp\r\n", 18, 0);
 
-    // File content
     char *buf;
     int bytes;
+    // Keep Alive
+    if (request->keep_alive == HTTP_KEEP_ALIVE)
+    {
+        send(sock, "Connection: Keep-Alive\r\n", 24, 0);
+        send(sock, "Keep-Alive: timeout=5\r\n", 23, 0);
+    }
+    else
+    {
+        send(sock, "Connection: Close\r\n", 19, 0);
+    }
+    // File content
     bytes = asprintf(&buf, "Content-Type: %s\r\n", mime_from_ext(fs->extension));
     send(sock, buf, bytes, 0);
     free(buf);
@@ -119,33 +129,65 @@ send_header(int sock, response_header *rh, file_stats *fs)
 
 // Needs a lot of work
 void
-send_file(int sock, char *file_path, file_stats *fs)
+send_file(int sock, char *file_path, file_stats *fs, int use_sendfile)
 {
-
-    int f = open(file_path, O_RDONLY);
-    if ( f <= 0 )
+    if (use_sendfile)
     {
-        printf("Cannot open file %d\n", errno);
-        return;
-    }
+        int f = open(file_path, O_RDONLY);
+        if ( f <= 0 )
+        {
+            printf("Cannot open file %d\n", errno);
+            return;
+        }
 
-    off_t len = 0;
-#ifdef __APPLE__
-    if ( sendfile(f, sock, 0, &len, NULL, 0) < 0 )
-    {
-        printf("Mac: Sendfile error: %d\n", errno);
+        off_t len = 0;
+        #ifdef __APPLE__
+        if ( sendfile(f, sock, 0, &len, NULL, 0) < 0 )
+        {
+            printf("Mac: Sendfile error: %d\n", errno);
+        }
+        #elif __linux__
+        size_t sent = 0;
+        ssize_t ret;
+        while ( (ret = sendfile(sock, f, &len, fs->bytes - sent)) > 0 )
+        {
+            sent += ret;
+            if (sent >= fs->bytes) break;
+        }
+        #endif
+        close(f);
     }
-#elif __linux__
-    size_t sent = 0;
-    ssize_t ret;
-    while ( (ret = sendfile(sock, f, &len, fs->bytes - sent)) > 0 )
+    else
     {
-        sent += ret;
+        FILE *f = fopen(file_path, "rb");
+        if ( f == NULL )
+        {
+            printf("Cannot open file %d\n", errno);
+            return;
+        }
 
-        if (sent >= fs->bytes) break;
+        size_t len = 0;
+        char *buf = malloc(TRANSFER_BUFFER);
+        while ( (len = fread(buf, 1, TRANSFER_BUFFER, f)) > 0 )
+        {
+            ssize_t sent = 0;
+            ssize_t ret  = 0;
+            while ( (ret = send(sock, buf+sent, len-sent, 0)) > 0 )
+            {
+                sent += ret;
+                if (sent >= fs->bytes) break;
+            }
+            if (ret < 0)
+            {
+                printf("ERROR!!!\n");
+            }
+
+            // Check for being done, either fread error or eof
+            if (feof(f) || ferror(f)) {break;}
+        }
+        free(buf);
+        fclose(f);
     }
-#endif
-    close(f);
 
 }
 
