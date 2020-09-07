@@ -25,7 +25,8 @@ http_mime http_mime_types[] = {
     {"html", "text/html"},
     {"htm", "text/html"},
     {"css", "text/css"},
-    {"js", "text/javascript"}
+    {"js", "text/javascript"},
+    {"zip", "application/zip"}
 };
 
 char *

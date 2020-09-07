@@ -78,7 +78,7 @@ handle_request(int sock, http_server *server, http_request *request)
             {
 		char resp_not_found[300];
 		char *not_found = "<html><p>404 Not Found</p></html>";
-		sprintf(resp_not_found, "HTTP/1.1 404 Not Found\r\nServer: minihttp\r\nContent-Length: %d\r\n\r\n%s", (int)strlen(not_found), not_found);
+		sprintf(resp_not_found, "HTTP/1.1 404 Not Found\r\nServer: minihttp\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n%s", (int)strlen(not_found), not_found);
                 //send(sock, "HTTP/1.1 404 Not Found\r\n", 24, 0);
                 //send(sock, "Content-Length: 0\r\n\r\n", 21, 0);
 		send(sock, resp_not_found, strlen(resp_not_found), 0);
