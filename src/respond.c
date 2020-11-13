@@ -92,6 +92,9 @@ handle_request(int sock, http_server *server, http_request *request)
 void
 send_header(int sock, http_request *request, response_header *rh, file_stats *fs)
 {
+    /* TODO:
+     * build header as a single string then use send only once too many sends are too many syscalls
+     */
     // Status line
     send(sock, rh->status.version, strlen(rh->status.version), 0);
     send(sock, " ", 1, 0);
@@ -180,6 +183,7 @@ send_file(int sock, char *file_path, file_stats *fs, int use_sendfile)
             if (ret < 0)
             {
                 printf("ERROR!!!\n");
+                break;
             }
 
             // Check for being done, either fread error or eof

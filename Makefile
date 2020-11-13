@@ -1,5 +1,22 @@
-all:
-	gcc -o MiniHTTP -D_GNU_SOURCE -D_POSIX_C_SOURCE=200809L -Wall -std=c99 -O3 src/main.c src/server.c src/request.c src/respond.c src/mime_types.c src/cgibase.c src/http_parser.c
+proj := MiniHTTP
+
+src := $(wildcard src/*.c)
+obj := $(src:.c=.o)
+CC := gcc
+CFLAGS := -D_GNU_SOURCE -D_POSIX_C_SOURCE=200809L -Wall -std=c99 -O3
+
+all: $(proj)
+
+MiniHTTP: $(obj)
+	$(CC) -o $@ $(CFLAGS) $^
+	rm -f $(obj)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+.PHONY: clean
+clean:
+	rm -f $(obj) $(proj)
 
 install:
 	sudo cp MiniHTTP /usr/local/bin/
