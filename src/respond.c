@@ -99,7 +99,7 @@ send_header(int sock, http_request *request, response_header *rh, file_stats *fs
     /* TODO:
      * make this cleaner
      */
-    char *headers[1024];
+    char headers[1024];
     // Status line
 //    send(sock, rh->status.version, strlen(rh->status.version), 0);
 //    send(sock, " ", 1, 0);
@@ -113,8 +113,8 @@ send_header(int sock, http_request *request, response_header *rh, file_stats *fs
 
     sprintf(headers, "%s %s %s\r\nServer: minihttp\r\n", rh->status.version, rh->status.status_code, rh->status.status);
 
-    char *buf;
-    int bytes;
+//    char *buf;
+//    int bytes;
     // Keep Alive
     if (request->keep_alive == HTTP_KEEP_ALIVE)
     {
