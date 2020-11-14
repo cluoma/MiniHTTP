@@ -97,41 +97,47 @@ void
 send_header(int sock, http_request *request, response_header *rh, file_stats *fs)
 {
     /* TODO:
-     * build header as a single string then use send only once too many sends are too many syscalls
+     * make this cleaner
      */
+    char *headers[1024];
     // Status line
-    send(sock, rh->status.version, strlen(rh->status.version), 0);
-    send(sock, " ", 1, 0);
-    send(sock, rh->status.status_code, strlen(rh->status.status_code), 0);
-    send(sock, " ", 1, 0);
-    send(sock, rh->status.status, strlen(rh->status.status), 0);
-    send(sock, "\r\n", 2, 0);
+//    send(sock, rh->status.version, strlen(rh->status.version), 0);
+//    send(sock, " ", 1, 0);
+//    send(sock, rh->status.status_code, strlen(rh->status.status_code), 0);
+//    send(sock, " ", 1, 0);
+//    send(sock, rh->status.status, strlen(rh->status.status), 0);
+//    send(sock, "\r\n", 2, 0);
 
     // Server info
-    send(sock, "Server: minihttp\r\n", 18, 0);
+//    send(sock, "Server: minihttp\r\n", 18, 0);
+
+    sprintf(headers, "%s %s %s\r\nServer: minihttp\r\n", rh->status.version, rh->status.status_code, rh->status.status);
 
     char *buf;
     int bytes;
     // Keep Alive
     if (request->keep_alive == HTTP_KEEP_ALIVE)
     {
-        send(sock, "Connection: Keep-Alive\r\n", 24, 0);
-        send(sock, "Keep-Alive: timeout=5\r\n", 23, 0);
+//        send(sock, "Connection: Keep-Alive\r\n", 24, 0);
+//        send(sock, "Keep-Alive: timeout=5\r\n", 23, 0);
+        sprintf(headers, "%sConnection: Keep-Alive\r\nKeep-Alive: timeout=5\r\n", headers);
     }
     else
     {
-        send(sock, "Connection: Close\r\n", 19, 0);
+//        send(sock, "Connection: Close\r\n", 19, 0);
+        sprintf(headers, "%sConnection: Close\r\n", headers);
     }
     // File content
-    bytes = asprintf(&buf, "Content-Type: %s\r\n", mime_from_ext(fs->extension));
-    send(sock, buf, bytes, 0);
-    free(buf);
-    bytes = asprintf(&buf, "Content-Length: %lld\r\n", (long long int)fs->bytes);
-    send(sock, buf, bytes, 0);
-    free(buf);
-
+//    bytes = asprintf(&buf, "Content-Type: %s\r\n", mime_from_ext(fs->extension));
+//    send(sock, buf, bytes, 0);
+//    free(buf);
+//    bytes = asprintf(&buf, "Content-Length: %lld\r\n", (long long int)fs->bytes);
+//    send(sock, buf, bytes, 0);
+//    free(buf);
+    sprintf(headers, "%sContent-Type: %s\r\nContent-Length: %lld\r\n\r\n", headers, mime_from_ext(fs->extension), (long long int)fs->bytes);
+    send(sock, headers, strlen(headers), 0);
     // End of Header
-    send(sock, "\r\n", 2, 0);
+//    send(sock, "\r\n", 2, 0);
 }
 
 // Needs a lot of work
