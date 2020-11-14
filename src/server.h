@@ -21,6 +21,7 @@ typedef struct
     int backlog;
     char *docroot;
     char *log_file;
+    char *default_file;
 
     int daemon;
 
@@ -37,6 +38,7 @@ static const http_server HTTP_SERVER_DEFAULT = {
     10,                 // default listen backlog
     "./docroot",        // default serving directory
     "./nubserv.log",    // default logfile
+    "index.html",   // default file to look for before 404
     0,                  // don't daemonize
     0,                  // fd 0
     0                   // don't use sendfile

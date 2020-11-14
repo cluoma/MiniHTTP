@@ -41,23 +41,25 @@ handle_request(int sock, http_server *server, http_request *request)
                 url = realloc(url, strlen("/cgi-bin/bb.cgi")+1);
                 memset(url, 0, strlen("/cgi-bin/bb.cgi")+1);
                 strcpy(url, "/cgi-bin/bb.cgi");
-                // url = realloc(url, strlen("/index.php")+1);
-                // memset(url, 0, strlen("/index.php")+1);
-                // strcpy(url, "/index.php");
             }
 
-            char *file_path = malloc(strlen(server->docroot) + strlen(url) + 1);
-            memset(file_path, 0, strlen(server->docroot) + strlen(url) + 1);
+            char *file_path = calloc(strlen(server->docroot) + strlen(url) + 1, 1);
+            //memset(file_path, 0, strlen(server->docroot) + strlen(url) + 1);
             file_path = strcat(file_path, server->docroot);
             file_path = strcat(file_path, url);
             free(url);
 
-            //printf("FILE PATH: %s\n", file_path);
-
             file_stats fs = get_file_stats(file_path);
-            build_header(&rh, &fs);
 
-            if (fs.found)
+            // File found and it's a directory, look for default file
+            if (fs.found && fs.isdir) {
+                file_path = realloc(file_path, strlen(file_path) + strlen(server->default_file) + 2);
+                file_path = strcat(file_path, "/");
+                file_path = strcat(file_path, server->default_file);
+                fs = get_file_stats(file_path);
+            }
+
+            if (fs.found && !fs.isdir)
             {
                 if (strcasecmp(fs.extension, "cgi") == 0)
                 {
@@ -71,21 +73,23 @@ handle_request(int sock, http_server *server, http_request *request)
                 // }
                 else
                 {
+                    // Add file information to header
+                    build_header(&rh, &fs);
                     send_header(sock, request, &rh, &fs);
                     send_file(sock, file_path, &fs, server->use_sendfile);
                 }
             } else
             {
-		char resp_not_found[300];
-		char *not_found = "<html><p>404 Not Found</p></html>";
-		sprintf(resp_not_found, "HTTP/1.1 404 Not Found\r\nServer: minihttp\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n%s", (int)strlen(not_found), not_found);
+		        char resp_not_found[300];
+		        char *not_found = "<html><p>404 Not Found</p></html>";
+		        sprintf(resp_not_found, "HTTP/1.1 404 Not Found\r\nServer: minihttp\r\nContent-Length: %d\r\nContent-Type: text/html\r\n\r\n%s", (int)strlen(not_found), not_found);
                 //send(sock, "HTTP/1.1 404 Not Found\r\n", 24, 0);
                 //send(sock, "Content-Length: 0\r\n\r\n", 21, 0);
-		send(sock, resp_not_found, strlen(resp_not_found), 0);
+		        send(sock, resp_not_found, strlen(resp_not_found), 0);
             }
             free(file_path);
         }
-            break;
+        break;
     }
 }
 
@@ -217,14 +221,21 @@ get_file_stats(char *file_path)
     file_stats fs;
     struct stat s;
 
-    if (stat(file_path, &s) == -1 ||
-        !S_ISREG(s.st_mode) || S_ISDIR(s.st_mode)) {
+    if (stat(file_path, &s) == -1) {  // Error in stat
         fs.found = 0;
-    } else {
+        fs.isdir = 0;
+    } else if (S_ISDIR(s.st_mode)) {  // Found a directory
         fs.found = 1;
+        fs.isdir = 1;
+    } else if (S_ISREG(s.st_mode)) {  // Found a file
+        fs.found = 1;
+        fs.isdir = 0;
         fs.bytes = s.st_size;
         fs.extension = strrchr(file_path, '.') + 1; // +1 because of '.'
         fs.name = NULL;
+    } else {  // Anything else we pretend we didn't find it
+        fs.found = 0;
+        fs.isdir = 0;
     }
 
     return fs;

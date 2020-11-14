@@ -9,7 +9,7 @@ void
 parse_args(int argc, char **argv, http_server *server)
 {
     int c;
-    while ((c = getopt(argc, argv, "p:d:b:al:s")) != -1) {
+    while ((c = getopt(argc, argv, "p:d:b:f:al:s")) != -1) {
         switch (c) {
             case 'p':
                 server->port = optarg;
@@ -19,6 +19,9 @@ parse_args(int argc, char **argv, http_server *server)
                 break;
             case 'b':
                 server->backlog = atoi(optarg);
+                break;
+            case 'f':
+                server->default_file = optarg;
                 break;
             case 'a':
                 server->daemon = 1;
@@ -65,8 +68,8 @@ main(int argc, char **argv)
         }
     }
 
-    printf("Starting minihttp with:\n port: %s\n backlog: %d\n docroot: %s\n logfile: %s\n\n",
-           server.port, server.backlog, server.docroot, server.log_file);
+    printf("Starting minihttp with:\n port: %s\n backlog: %d\n docroot: %s\n logfile: %s\n default file: %s\n\n",
+           server.port, server.backlog, server.docroot, server.log_file, server.default_file);
 
     if (http_server_start(&server) != 0)
       return 1;

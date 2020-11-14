@@ -40,6 +40,7 @@ struct response_header {
 typedef struct file_stats file_stats;
 struct file_stats {
     int found;
+    int isdir;
     long long bytes;
     char *name;
     char *extension;
