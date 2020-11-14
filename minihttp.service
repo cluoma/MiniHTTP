@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/usr/local/bin
-ExecStart=/usr/local/bin/MiniHTTP -s -d /home/linaro/www -b 50 -p 80 -l /home/linaro/logs/logs.log
+ExecStart=/usr/local/bin/MiniHTTP -f index.html -s -d /home/linaro/www -b 50 -p 80 -l /home/linaro/logs/logs.log
 Restart=always
 
 [Install]
